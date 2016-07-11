@@ -32,7 +32,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
   private SchedulerService schedulerService;
 
   public SchedulerEventListener(QueryExecutionServiceImpl queryService, SchedulerDAO schedulerDAO,
-      SchedulerServiceImpl schedulerService) {
+      SchedulerService schedulerService) {
     super(CORE_POOL_SIZE);
     this.queryService = queryService;
     this.schedulerDAO = schedulerDAO;
@@ -114,6 +114,9 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       schedulerDAO.updateJobInstance(instance);
     } catch (HiveSQLException e) {
       log.error("Error occurred for " + jobHandle + " for nominal time " + scheduledTime.getMillis(), e);
+      instance.setStatus(SchedulerJobInstanceStatus.FAILED);
+      instance.setEndTime(System.currentTimeMillis());
+      schedulerDAO.updateJobInstance(instance);
     }
   }
 }

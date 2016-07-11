@@ -373,7 +373,6 @@ public class SchedulerDAO {
         String state = (String) jobInfo[3];
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
-        String savedQueryHandle = (String) jobInfo[6];
         return new SchedulerJobInfo(id, xJob, userName, SchedulerJobStatus.valueOf(state), createdOn, modifiedOn);
       }
     }

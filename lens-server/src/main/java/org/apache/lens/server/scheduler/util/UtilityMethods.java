@@ -54,10 +54,10 @@ public class UtilityMethods {
   }
 
   public static SchedulerJobHandle generateSchedulerJobHandle() {
-    return SchedulerJobHandle.fromString(UUID.randomUUID().toString());
+    return new SchedulerJobHandle(UUID.randomUUID());
   }
 
   public static SchedulerJobInstanceHandle generateSchedulerJobInstanceHandle() {
-    return SchedulerJobInstanceHandle.fromString(UUID.randomUUID().toString());
+    return new SchedulerJobInstanceHandle(UUID.randomUUID());
   }
 }

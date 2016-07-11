@@ -252,7 +252,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     case LAUNCHED:
     case RUNNING:
     case WAITING:
-      throw new LensException("Can not re run the instance " + instanceHandle + ". Current status " + status);
+      throw new LensException("Can not rerun the instance " + instanceHandle + ". Current status " + status);
     default:
       getEventService().notifyEvent(
           new SchedulerAlarmEvent(instanceInfo.getJobId(), new DateTime(instanceInfo.getScheduleTime()),
