@@ -18,6 +18,10 @@
  */
 package org.apache.lens.server.scheduler.util;
 
+import java.util.UUID;
+
+import org.apache.lens.api.scheduler.SchedulerJobHandle;
+import org.apache.lens.api.scheduler.SchedulerJobInstanceHandle;
 import org.apache.lens.server.api.LensConfConstants;
 
 import org.apache.commons.dbcp.BasicDataSource;
@@ -32,7 +36,6 @@ public class UtilityMethods {
   }
 
   /**
-   *
    * @param conf
    * @return
    */
@@ -48,5 +51,13 @@ public class UtilityMethods {
         .setPassword(conf.get(LensConfConstants.SERVER_DB_JDBC_PASS, LensConfConstants.DEFAULT_SERVER_DB_PASS));
     basicDataSource.setDefaultAutoCommit(true);
     return basicDataSource;
+  }
+
+  public static SchedulerJobHandle generateSchedulerJobHandle() {
+    return SchedulerJobHandle.fromString(UUID.randomUUID().toString());
+  }
+
+  public static SchedulerJobInstanceHandle generateSchedulerJobInstanceHandle() {
+    return SchedulerJobInstanceHandle.fromString(UUID.randomUUID().toString());
   }
 }

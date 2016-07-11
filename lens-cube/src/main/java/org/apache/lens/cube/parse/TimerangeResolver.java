@@ -18,9 +18,8 @@
  */
 package org.apache.lens.cube.parse;
 
-import static org.apache.lens.cube.parse.CandidateTablePruneCause.CandidateTablePruneCode.FACT_NOT_AVAILABLE_IN_RANGE;
-
 import static org.apache.hadoop.hive.ql.parse.HiveParser.*;
+import static org.apache.lens.cube.parse.CandidateTablePruneCause.CandidateTablePruneCode.FACT_NOT_AVAILABLE_IN_RANGE;
 
 import java.util.*;
 
@@ -127,8 +126,14 @@ class TimerangeResolver implements ContextRewriter {
         toDateRaw = PlanUtils.stripQuotes(timenode.getChild(3).getText());
       }
     }
-
-    Date now = new Date();
+    // TODO: create Proper configuration.
+    long currentTime = cubeql.getConf().getLong("currenttime", 0);
+    Date now;
+    if (currentTime != 0) {
+      now = new Date(currentTime);
+    } else {
+      now = new Date();
+    }
     builder.fromDate(DateUtil.resolveDate(fromDateRaw, now));
     if (StringUtils.isNotBlank(toDateRaw)) {
       builder.toDate(DateUtil.resolveDate(toDateRaw, now));

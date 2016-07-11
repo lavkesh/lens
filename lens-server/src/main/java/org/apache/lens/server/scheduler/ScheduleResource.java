@@ -94,7 +94,7 @@ public class ScheduleResource {
                                                 @DefaultValue("user") @QueryParam("user") String user,
                                                 @DefaultValue("-1") @QueryParam("start") long start,
                                                 @DefaultValue("-1") @QueryParam("end") long end) throws LensException {
-    return getSchedulerService().getAllJobStats(sessionId, state, user, start, end);
+    return getSchedulerService().getAllJobStats(sessionId, state, user, jobName, start, end);
   }
 
   @GET
@@ -164,7 +164,7 @@ public class ScheduleResource {
 
   @GET
   @Path("jobs/{jobHandle}/instances/")
-  public List<SchedulerJobInstanceInfo> getJobInstances(@QueryParam("sessionid") LensSessionHandle sessionId,
+  public List<SchedulerJobInstanceHandle> getJobInstances(@QueryParam("sessionid") LensSessionHandle sessionId,
                                                       @PathParam("jobHandle") SchedulerJobHandle jobHandle,
                                                       @QueryParam("numResults") Long numResults) throws LensException {
     validateSession(sessionId);

@@ -19,6 +19,7 @@
 package org.apache.lens.api.scheduler;
 
 import org.apache.lens.api.LensSessionHandle;
+import org.apache.lens.api.query.QueryHandle;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -70,7 +71,7 @@ public class SchedulerJobInstanceInfo {
    * @param query query to be set
    * @return query of this instance.
    */
-  private String query;
+  private QueryHandle queryHandle;
 
   /**
    * @param state state to be set.
@@ -79,9 +80,8 @@ public class SchedulerJobInstanceInfo {
   private SchedulerJobInstanceStatus state;
 
   /**
-   * @param createdOn time to be set as created_on time for the instance.
+   * @param scheduleTime time to be set as created_on time for the instance.
    * @return created_on time of this instance.
    */
-  private long createdOn;
-
+  private long scheduleTime;
 }

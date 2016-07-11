@@ -55,7 +55,7 @@ public class SchedulerJobInfo {
   private SchedulerJobStatus state;
 
   /**
-   * @param createdOn time to be set as createdOn.
+   * @param scheduleTime time to be set as scheduleTime.
    * @return time when this job was submitted.
    */
   private long createdOn;
@@ -65,5 +65,11 @@ public class SchedulerJobInfo {
    * @return last modified time for this job
    */
   private long modifiedOn;
+
+  /**
+   * @param savedQueryHandle The saved query handle for the job.
+   * @return Query Handle
+   */
+  private String savedQueryHandle;
 
 }

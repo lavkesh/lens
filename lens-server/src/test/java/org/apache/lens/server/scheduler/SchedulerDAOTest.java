@@ -25,6 +25,7 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.lens.api.LensSessionHandle;
+import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.LensServerConf;
 import org.apache.lens.server.api.LensConfConstants;
@@ -100,7 +101,7 @@ public class SchedulerDAOTest {
     XJob job = getTestJob();
     long currentTime = System.currentTimeMillis();
     SchedulerJobInfo info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job,
-        "lens", SchedulerJobStatus.NEW, currentTime, currentTime);
+        "lens", SchedulerJobStatus.NEW, currentTime, currentTime, "N/A");
     // Store the job
     schedulerDAO.storeJob(info);
     // Retrive the stored job
@@ -115,7 +116,7 @@ public class SchedulerDAOTest {
     SchedulerJobInstanceInfo firstInstance = new SchedulerJobInstanceInfo(
         SchedulerJobInstanceHandle.fromString(UUID.randomUUID().toString()), jobHandle,
         new LensSessionHandle(UUID.randomUUID(), UUID.randomUUID()), currentTime, currentTime, "/tmp/",
-        "select * form yoda_cube", SchedulerJobInstanceStatus.WAITING, currentTime);
+        QueryHandle.fromString(UUID.randomUUID().toString()), SchedulerJobInstanceStatus.WAITING, currentTime);
     instances.put(firstInstance.getId(), firstInstance);
     schedulerDAO.storeJobInstance(firstInstance);
 
@@ -123,7 +124,7 @@ public class SchedulerDAOTest {
     SchedulerJobInstanceInfo secondInstance = new SchedulerJobInstanceInfo(
         SchedulerJobInstanceHandle.fromString(UUID.randomUUID().toString()), jobHandle,
         new LensSessionHandle(UUID.randomUUID(), UUID.randomUUID()), currentTime, currentTime, "/tmp/",
-        "select * form yoda_cube", SchedulerJobInstanceStatus.WAITING, currentTime);
+        QueryHandle.fromString(UUID.randomUUID().toString()), SchedulerJobInstanceStatus.WAITING, currentTime);
     instances.put(secondInstance.getId(), secondInstance);
     schedulerDAO.storeJobInstance(secondInstance);
     List<SchedulerJobInstanceHandle> handleList = schedulerDAO.getJobInstances(jobHandle);
@@ -163,7 +164,7 @@ public class SchedulerDAOTest {
     SchedulerJobInstanceHandle handle = instances.keySet().iterator().next();
     SchedulerJobInstanceInfo info = instances.get(handle);
     info.setState(SchedulerJobInstanceStatus.LAUNCHED);
-    schedulerDAO.updateJobInstanceState(info);
+    schedulerDAO.updateJobInstance(info);
     // Get the instance
     Assert.assertEquals(schedulerDAO.getSchedulerJobInstanceInfo(handle), info);
   }
@@ -174,11 +175,11 @@ public class SchedulerDAOTest {
     XJob job = getTestJob();
     long currentTime = System.currentTimeMillis();
     SchedulerJobInfo info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job,
-        "lens", SchedulerJobStatus.NEW, currentTime, currentTime);
+        "lens", SchedulerJobStatus.NEW, currentTime, currentTime, "N/A");
     // Store the job
     schedulerDAO.storeJob(info);
     info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job, "lens",
-        SchedulerJobStatus.NEW, currentTime, currentTime);
+        SchedulerJobStatus.NEW, currentTime, currentTime, "N/A");
     schedulerDAO.storeJob(info);
     // There should be 3 jobs till now.
     Assert.assertEquals(schedulerDAO.getJobs("lens", null, null, null).size(), 3);
