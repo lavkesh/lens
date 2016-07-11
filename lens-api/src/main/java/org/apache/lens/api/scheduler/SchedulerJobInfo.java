@@ -66,10 +66,4 @@ public class SchedulerJobInfo {
    */
   private long modifiedOn;
 
-  /**
-   * @param savedQueryHandle The saved query handle for the job.
-   * @return Query Handle
-   */
-  private String savedQueryHandle;
-
 }

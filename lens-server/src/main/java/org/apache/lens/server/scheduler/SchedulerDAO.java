@@ -280,7 +280,6 @@ public class SchedulerDAO {
     protected static final String COLUMN_RESULT_PATH = "resultpath";
     protected static final String COLUMN_QUERY_HANDLE = "queryhandle";
     protected static final String COLUMN_JOB_NAME = "jobname";
-    protected static final String COLUMN_SAVED_QUERY_HANDLE = "savedqueryhandle";
     protected QueryRunner runner;
     protected ObjectFactory jobFactory = new ObjectFactory();
     // Generic multiple row handler for the fetch query.
@@ -332,11 +331,10 @@ public class SchedulerDAO {
      * @throws SQLException
      */
     public int insertIntoJobTable(SchedulerJobInfo jobInfo) throws SQLException {
-      String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?,?)";
+      String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?)";
       JAXBElement<XJob> xmlJob = jobFactory.createJob(jobInfo.getJob());
       return runner.update(insertSQL, jobInfo.getId().toString(), ToXMLString.toString(xmlJob), jobInfo.getUserName(),
-          jobInfo.getState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName(),
-          jobInfo.getSavedQueryHandle());
+          jobInfo.getState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
     }
 
     /**
@@ -376,8 +374,7 @@ public class SchedulerDAO {
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
         String savedQueryHandle = (String) jobInfo[6];
-        return new SchedulerJobInfo(id, xJob, userName, SchedulerJobStatus.valueOf(state), createdOn, modifiedOn,
-            savedQueryHandle);
+        return new SchedulerJobInfo(id, xJob, userName, SchedulerJobStatus.valueOf(state), createdOn, modifiedOn);
       }
     }
 
@@ -594,8 +591,8 @@ public class SchedulerDAO {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL," + COLUMN_JOB
               + " TEXT," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATE + " VARCHAR(20)," + COLUMN_CREATED_ON
-              + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), "
-              + COLUMN_SAVED_QUERY_HANDLE + " VARCHAR(255), " + " PRIMARY KEY ( " + COLUMN_ID + ")" + ")";
+              + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), " + " PRIMARY KEY ( "
+              + COLUMN_ID + ")" + ")";
       runner.update(createSQL);
     }
 
@@ -626,8 +623,8 @@ public class SchedulerDAO {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL," + COLUMN_JOB
               + " VARCHAR(1024)," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATE + " VARCHAR(20)," + COLUMN_CREATED_ON
-              + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), "
-              + COLUMN_SAVED_QUERY_HANDLE + " VARCHAR(255), " + " PRIMARY KEY ( " + COLUMN_ID + ")" + ")";
+              + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), " + " PRIMARY KEY ( "
+              + COLUMN_ID + ")" + ")";
       runner.update(createSQL);
     }
 

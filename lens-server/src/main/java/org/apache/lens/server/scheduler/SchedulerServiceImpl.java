@@ -100,7 +100,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     long createdOn = System.currentTimeMillis();
     long modifiedOn = createdOn;
     SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getUserName(), SchedulerJobStatus.NEW, createdOn,
-        modifiedOn, "N/A");
+        modifiedOn);
     if (schedulerDAO.storeJob(info) == 1) {
       return handle;
     } else {
@@ -245,7 +245,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
   throws LensException {
     SchedulerJobInstanceInfo instanceInfo = schedulerDAO.getSchedulerJobInstanceInfo(instanceHandle);
     if (schedulerDAO.getJobState(instanceInfo.getJobId()) != SchedulerJobStatus.SCHEDULED)
-      throw new LensException("Job with handle " + instanceInfo.getJobId () + " is not scheduled");
+      throw new LensException("Job with handle " + instanceInfo.getJobId() + " is not scheduled");
     // If the previous instance is running then do not rerun.
     SchedulerJobInstanceStatus status = instanceInfo.getStatus();
     switch (status) {
