@@ -54,7 +54,7 @@ public class SchedulerQueryEventListener extends AsyncEventListener<QueryEnded> 
     SchedulerJobInstanceInfo info = schedulerDAO
         .getSchedulerJobInstanceInfo(SchedulerJobInstanceHandle.fromString(instanceHandle));
     info.setEndTime(System.currentTimeMillis());
-    info.setState(state);
+    info.setStatus(state);
     info.setResultPath(queryContext.getDriverResultPath());
     schedulerDAO.updateJobInstance(info);
   }

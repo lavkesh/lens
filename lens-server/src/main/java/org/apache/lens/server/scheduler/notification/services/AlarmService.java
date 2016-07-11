@@ -226,13 +226,13 @@ public class AlarmService extends AbstractService implements LensService {
       DateTime nominalTime = new DateTime(jobExecutionContext.getScheduledFireTime());
       SchedulerJobHandle jobHandle = SchedulerJobHandle.fromString(data.getString("jobHandle"));
       SchedulerAlarmEvent alarmEvent = new SchedulerAlarmEvent(jobHandle, nominalTime,
-          SchedulerAlarmEvent.EventType.SCHEDULE, null);
+          SchedulerAlarmEvent.EventType.SCHEDULE);
       try {
         LensEventService eventService = LensServices.get().getService(LensEventService.NAME);
         eventService.notifyEvent(alarmEvent);
         if (jobExecutionContext.getNextFireTime() == null) {
           eventService
-              .notifyEvent(new SchedulerAlarmEvent(jobHandle, nominalTime, SchedulerAlarmEvent.EventType.EXPIRE, null));
+              .notifyEvent(new SchedulerAlarmEvent(jobHandle, nominalTime, SchedulerAlarmEvent.EventType.EXPIRE));
         }
       } catch (LensException e) {
         log.error("Failed to notify SchedulerAlarmEvent for jobHandle: {} and scheduleTime: {}",

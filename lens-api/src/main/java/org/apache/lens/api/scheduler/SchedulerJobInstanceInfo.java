@@ -74,14 +74,14 @@ public class SchedulerJobInstanceInfo {
   private QueryHandle queryHandle;
 
   /**
-   * @param state state to be set.
-   * @return state of this instance.
+   * @param status status to be set.
+   * @return status of this instance.
    */
-  private SchedulerJobInstanceStatus state;
+  private SchedulerJobInstanceStatus status;
 
   /**
-   * @param scheduleTime time to be set as created_on time for the instance.
-   * @return created_on time of this instance.
+   * @param scheduleTime time to be set as the nomial time for the instance.
+   * @return scheduled time of this instance.
    */
   private long scheduleTime;
 }

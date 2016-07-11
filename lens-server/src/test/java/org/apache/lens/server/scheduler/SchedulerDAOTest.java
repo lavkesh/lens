@@ -163,7 +163,7 @@ public class SchedulerDAOTest {
   public void testUpdateJobInstance() {
     SchedulerJobInstanceHandle handle = instances.keySet().iterator().next();
     SchedulerJobInstanceInfo info = instances.get(handle);
-    info.setState(SchedulerJobInstanceStatus.LAUNCHED);
+    info.setStatus(SchedulerJobInstanceStatus.LAUNCHED);
     schedulerDAO.updateJobInstance(info);
     // Get the instance
     Assert.assertEquals(schedulerDAO.getSchedulerJobInstanceInfo(handle), info);

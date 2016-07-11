@@ -49,8 +49,8 @@ public class SchedulerJobInfo {
   private String userName;
 
   /**
-   * @param state state of this job.
-   * @return current state of this job
+   * @param status status of this job.
+   * @return current status of this job
    */
   private SchedulerJobStatus state;
 

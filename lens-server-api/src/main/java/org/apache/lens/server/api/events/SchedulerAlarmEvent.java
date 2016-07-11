@@ -19,7 +19,6 @@
 package org.apache.lens.server.api.events;
 
 import org.apache.lens.api.scheduler.SchedulerJobHandle;
-import org.apache.lens.api.scheduler.SchedulerJobInstanceHandle;
 
 import org.joda.time.DateTime;
 
@@ -37,16 +36,12 @@ public class SchedulerAlarmEvent extends LensEvent {
   private SchedulerJobHandle jobHandle;
   private DateTime nominalTime;
   private EventType type;
-  // Previous handle for the rerunning the instance.
-  private SchedulerJobInstanceHandle previousHandle;
 
-  public SchedulerAlarmEvent(SchedulerJobHandle jobHandle, DateTime nominalTime, EventType type,
-      SchedulerJobInstanceHandle previousHandle) {
+  public SchedulerAlarmEvent(SchedulerJobHandle jobHandle, DateTime nominalTime, EventType type) {
     super(nominalTime.getMillis());
     this.jobHandle = jobHandle;
     this.nominalTime = nominalTime;
     this.type = type;
-    this.previousHandle = previousHandle;
   }
 
   @Override

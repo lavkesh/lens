@@ -8,6 +8,7 @@ import org.apache.lens.api.LensConf;
 import org.apache.lens.api.LensSessionHandle;
 import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
+import org.apache.lens.server.api.LensConfConstants;
 import org.apache.lens.server.api.error.LensException;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.events.SchedulerAlarmEvent;
@@ -61,11 +62,10 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
      * If successfully submitted change the status to running.
      * Otherwise update the status to killed.
      */
-    //TODO: Get the job state and if it is not Scheduled, don't do anything.
+    //TODO: Get the job status and if it is not Scheduled, don't do anything.
     XJob job = schedulerDAO.getJob(jobHandle);
     String user = schedulerDAO.getUser(jobHandle);
-    SchedulerJobInstanceHandle instanceHandle =
-        event.getJobHandle() == null ? UtilityMethods.generateSchedulerJobInstanceHandle() : event.getPreviousHandle();
+    SchedulerJobInstanceHandle instanceHandle = UtilityMethods.generateSchedulerJobInstanceHandle();
     Map<String, String> conf = new HashMap<>();
     LensSessionHandle sessionHandle = null;
     try {
@@ -87,32 +87,29 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
         queryConf.addProperty(element.getKey(), element.getValue());
       }
       queryConf.addProperty(JOB_INSTANCE_ID_KEY, instanceHandle.getHandleId());
+      // Current time is used for resolving date.
+      queryConf.addProperty(LensConfConstants.QUERY_CURRENT_TIME, scheduledTime.getMillis());
       String queryName = job.getName();
       queryName += "-" + scheduledTime.getMillis();
       instance = new SchedulerJobInstanceInfo(instanceHandle, jobHandle, sessionHandle, currentTime, 0, "N/A",
           QueryHandle.fromString(null), SchedulerJobInstanceStatus.WAITING, scheduledTimeMillis);
-      boolean success;
-      if (event.getJobHandle() == null) {
-        success = schedulerDAO.storeJobInstance(instance) == 1;
-      } else {
-        success = schedulerDAO.updateJobInstance(instance) == 1;
-      }
+      boolean success = schedulerDAO.storeJobInstance(instance) == 1;
       if (!success) {
         log.error(
             "Exception occurred while storing the instance for instance handle " + instance + " of job " + jobHandle);
         return;
       }
-      //TODO: Handle waiting state
+      //TODO: Handle waiting status
       QueryHandle handle = queryService.executeAsync(sessionHandle, query, queryConf, queryName);
       instance.setQueryHandle(handle);
-      instance.setState(SchedulerJobInstanceStatus.LAUNCHED);
+      instance.setStatus(SchedulerJobInstanceStatus.LAUNCHED);
       instance.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstance(instance);
     } catch (LensException e) {
       log.error(
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
-      instance.setState(SchedulerJobInstanceStatus.FAILED);
+      instance.setStatus(SchedulerJobInstanceStatus.FAILED);
       instance.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstance(instance);
     } catch (HiveSQLException e) {

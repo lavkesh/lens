@@ -1114,4 +1114,10 @@ public final class LensConfConstants {
    */
   public static final java.lang.String SCHEDULER_STORE_CLASS = SERVER_PFX + "scheduler.store.class";
 
+  /**
+   * Query current time for the scheduled query.
+   */
+  public static final String QUERY_CURRENT_TIME = QUERY_PFX + "current.time";
+
+
 }

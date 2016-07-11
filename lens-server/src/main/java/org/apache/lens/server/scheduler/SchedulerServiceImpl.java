@@ -243,12 +243,22 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
   @Override
   public boolean rerunInstance(LensSessionHandle sessionHandle, SchedulerJobInstanceHandle instanceHandle)
   throws LensException {
-    // Overwrite stuff ?
     SchedulerJobInstanceInfo instanceInfo = schedulerDAO.getSchedulerJobInstanceInfo(instanceHandle);
-    getEventService().notifyEvent(
-        new SchedulerAlarmEvent(instanceInfo.getJobId(), new DateTime(instanceInfo.getScheduleTime()),
-            SchedulerAlarmEvent.EventType.SCHEDULE, instanceHandle));
-    return false;
+    if (schedulerDAO.getJobState(instanceInfo.getJobId()) != SchedulerJobStatus.SCHEDULED)
+      throw new LensException("Job with handle " + instanceInfo.getJobId () + " is not scheduled");
+    // If the previous instance is running then do not rerun.
+    SchedulerJobInstanceStatus status = instanceInfo.getStatus();
+    switch (status) {
+    case LAUNCHED:
+    case RUNNING:
+    case WAITING:
+      throw new LensException("Can not re run the instance " + instanceHandle + ". Current status " + status);
+    default:
+      getEventService().notifyEvent(
+          new SchedulerAlarmEvent(instanceInfo.getJobId(), new DateTime(instanceInfo.getScheduleTime()),
+              SchedulerAlarmEvent.EventType.SCHEDULE));
+      return true;
+    }
   }
 
   /**

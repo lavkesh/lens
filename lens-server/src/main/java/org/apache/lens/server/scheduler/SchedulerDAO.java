@@ -117,6 +117,7 @@ public class SchedulerDAO {
 
   /**
    * Get the user of the job who submitted the job.
+   *
    * @param id
    * @return
    */
@@ -130,7 +131,7 @@ public class SchedulerDAO {
   }
 
   /**
-   * Gets the Job state
+   * Gets the Job status
    *
    * @param id : Job handle id.
    * @return SchedulerJobState of the job.
@@ -139,7 +140,7 @@ public class SchedulerDAO {
     try {
       return store.getJobState(id.getHandleIdString());
     } catch (SQLException e) {
-      log.error("Error while getting the job state for " + id.getHandleIdString(), e);
+      log.error("Error while getting the job status for " + id.getHandleIdString(), e);
       return null;
     }
   }
@@ -160,7 +161,7 @@ public class SchedulerDAO {
   }
 
   /**
-   * Updates the job state form the new SchedulerJobInfo
+   * Updates the job status form the new SchedulerJobInfo
    *
    * @param info: Updated info objects
    * @return number of rows updated.
@@ -169,7 +170,7 @@ public class SchedulerDAO {
     try {
       return store.updateJobState(info.getId().getHandleIdString(), info.getState().name(), info.getModifiedOn());
     } catch (SQLException e) {
-      log.error("Error while updating job state for " + info.getId().getHandleIdString(), e);
+      log.error("Error while updating job status for " + info.getId().getHandleIdString(), e);
       return 0;
     }
   }
@@ -199,7 +200,7 @@ public class SchedulerDAO {
   }
 
   /**
-   * Updates the instance state
+   * Updates the instance status
    *
    * @param info: Updated instance info
    * @return number of rows updated.
@@ -208,7 +209,7 @@ public class SchedulerDAO {
     try {
       return store.updateJobInstance(info);
     } catch (SQLException e) {
-      log.error("Error while updating the job instance state for " + info.getId().getHandleIdString(), e);
+      log.error("Error while updating the job instance status for " + info.getId().getHandleIdString(), e);
       return 0;
     }
   }
@@ -268,7 +269,7 @@ public class SchedulerDAO {
     protected static final String COLUMN_ID = "id";
     protected static final String COLUMN_JOB = "job";
     protected static final String COLUMN_USER = "username";
-    protected static final String COLUMN_STATE = "state";
+    protected static final String COLUMN_STATE = "status";
     protected static final String COLUMN_CREATED_ON = "createdon";
     protected static final String COLUMN_SCHEDULE_TIME = "schedultime";
     protected static final String COLUMN_MODIFIED_ON = "modifiedon";
@@ -351,7 +352,7 @@ public class SchedulerDAO {
           .update(insertSQL, instanceInfo.getId().getHandleIdString(), instanceInfo.getJobId().getHandleIdString(),
               instanceInfo.getSessionHandle().toString(), instanceInfo.getStartTime(), instanceInfo.getEndTime(),
               instanceInfo.getResultPath(), instanceInfo.getQueryHandle().getHandleIdString(),
-              instanceInfo.getState().name(), instanceInfo.getScheduleTime());
+              instanceInfo.getStatus().name(), instanceInfo.getScheduleTime());
     }
 
     /**
@@ -416,7 +417,7 @@ public class SchedulerDAO {
     }
 
     /**
-     * Gets the job state
+     * Gets the job status
      *
      * @param id
      * @return SchedulerJobState
@@ -485,7 +486,7 @@ public class SchedulerDAO {
     }
 
     /**
-     * Updates the job state into the job table
+     * Updates the job status into the job table
      *
      * @param id
      * @param state
@@ -529,7 +530,7 @@ public class SchedulerDAO {
     }
 
     /**
-     * Updates the state of a job instance.
+     * Updates the status of a job instance.
      *
      * @param instanceInfo
      * @return number of rows updated.
@@ -537,13 +538,12 @@ public class SchedulerDAO {
      */
     public int updateJobInstance(SchedulerJobInstanceInfo instanceInfo) throws SQLException {
       String updateSQL =
-          "UPDATE " + JOB_INSTANCE_TABLE + " SET " + COLUMN_SESSION_HANDLE + "=?, " + COLUMN_START_TIME + "=?,"
-              + COLUMN_END_TIME + "=?, " + COLUMN_RESULT_PATH + "=?, " + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATE
-              + "=?" + " WHERE " + COLUMN_ID + "=?";
+          "UPDATE " + JOB_INSTANCE_TABLE + " SET " + COLUMN_END_TIME + "=?, " + COLUMN_RESULT_PATH + "=?, "
+              + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATE + "=?" + " WHERE " + COLUMN_ID + "=?";
 
-      return runner.update(updateSQL, instanceInfo.getSessionHandle().toString(), instanceInfo.getStartTime(),
-          instanceInfo.getEndTime(), instanceInfo.getResultPath(), instanceInfo.getQueryHandle().getHandleIdString(),
-          instanceInfo.getState().name(), instanceInfo.getId().getHandleIdString());
+      return runner.update(updateSQL, instanceInfo.getEndTime(), instanceInfo.getResultPath(),
+          instanceInfo.getQueryHandle().getHandleIdString(), instanceInfo.getStatus().name(),
+          instanceInfo.getId().getHandleIdString());
     }
 
     /**
@@ -566,6 +566,7 @@ public class SchedulerDAO {
 
     /**
      * Get the user who submitted the job.
+     *
      * @param id
      * @return
      * @throws SQLException

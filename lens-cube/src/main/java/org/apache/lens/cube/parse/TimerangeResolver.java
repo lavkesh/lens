@@ -30,6 +30,7 @@ import org.apache.lens.cube.metadata.*;
 import org.apache.lens.cube.metadata.join.JoinPath;
 import org.apache.lens.cube.parse.DenormalizationResolver.ReferencedQueriedColumn;
 import org.apache.lens.cube.parse.join.AutoJoinContext;
+import org.apache.lens.server.api.LensConfConstants;
 import org.apache.lens.server.api.error.LensException;
 
 import org.apache.commons.lang.StringUtils;
@@ -126,8 +127,7 @@ class TimerangeResolver implements ContextRewriter {
         toDateRaw = PlanUtils.stripQuotes(timenode.getChild(3).getText());
       }
     }
-    // TODO: create Proper configuration.
-    long currentTime = cubeql.getConf().getLong("currenttime", 0);
+    long currentTime = cubeql.getConf().getLong(LensConfConstants.QUERY_CURRENT_TIME, 0);
     Date now;
     if (currentTime != 0) {
       now = new Date(currentTime);

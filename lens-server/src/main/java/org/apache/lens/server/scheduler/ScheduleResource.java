@@ -89,7 +89,7 @@ public class ScheduleResource {
   @GET
   @Path("jobs/stats")
   public Collection<SchedulerJobStats> getAllJobStats(@QueryParam("sessionid") LensSessionHandle sessionId,
-                                                @DefaultValue("running") @QueryParam("state") String state,
+                                                @DefaultValue("running") @QueryParam("status") String state,
                                                 @QueryParam("name") String jobName,
                                                 @DefaultValue("user") @QueryParam("user") String user,
                                                 @DefaultValue("-1") @QueryParam("start") long start,
