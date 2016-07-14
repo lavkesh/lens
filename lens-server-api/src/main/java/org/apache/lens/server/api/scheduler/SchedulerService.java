@@ -35,7 +35,7 @@ public interface SchedulerService extends LensService, SessionValidator{
   /**
    * The constant name for scheduler service.
    */
-  public static final String NAME = "scheduler";
+  String NAME = "scheduler";
 
   /**
    * Submit a job.
@@ -54,7 +54,7 @@ public interface SchedulerService extends LensService, SessionValidator{
    * @param jobHandle     handle for the job to be scheduled.
    * @throws LensException the lens exception
    */
-  void scheduleJob(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle) throws LensException;
+  boolean scheduleJob(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle) throws LensException;
 
   /**
    * Submit a job and also schedule it.

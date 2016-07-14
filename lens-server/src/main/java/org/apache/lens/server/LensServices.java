@@ -179,7 +179,7 @@ public class LensServices extends CompositeService implements ServiceProvider {
   }
 
   // This is only for test, to simulate a restart of the server
-  static void setInstance(LensServices newInstance) {
+  public static void setInstance(LensServices newInstance) {
     instance = newInstance;
   }
 

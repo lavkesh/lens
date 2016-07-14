@@ -1,5 +1,6 @@
 package org.apache.lens.server.scheduler;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,10 +9,13 @@ import org.apache.lens.api.LensConf;
 import org.apache.lens.api.LensSessionHandle;
 import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
+import org.apache.lens.server.LensServices;
 import org.apache.lens.server.api.LensConfConstants;
+import org.apache.lens.server.api.error.InvalidStateTransitionException;
 import org.apache.lens.server.api.error.LensException;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.events.SchedulerAlarmEvent;
+import org.apache.lens.server.api.query.QueryExecutionService;
 import org.apache.lens.server.api.scheduler.SchedulerService;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
 import org.apache.lens.server.scheduler.util.UtilityMethods;
@@ -21,22 +25,27 @@ import org.apache.hive.service.cli.HiveSQLException;
 
 import org.joda.time.DateTime;
 
+import com.google.common.annotations.VisibleForTesting;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEvent> {
   private static final int CORE_POOL_SIZE = 10;
   private static final String JOB_INSTANCE_ID_KEY = "job_instance_key";
-  private QueryExecutionServiceImpl queryService;
+  @Getter
+  @Setter
+  @VisibleForTesting
+  protected QueryExecutionService queryService;
   private SchedulerDAO schedulerDAO;
   private SchedulerService schedulerService;
 
-  public SchedulerEventListener(QueryExecutionServiceImpl queryService, SchedulerDAO schedulerDAO,
-      SchedulerService schedulerService) {
+  public SchedulerEventListener(SchedulerDAO schedulerDAO) {
     super(CORE_POOL_SIZE);
-    this.queryService = queryService;
+    this.queryService = LensServices.get().getService(QueryExecutionService.NAME);
+    this.schedulerService = LensServices.get().getService(SchedulerService.NAME);
     this.schedulerDAO = schedulerDAO;
-    this.schedulerService = schedulerService;
   }
 
   /**
@@ -65,19 +74,24 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
     //TODO: Get the job status and if it is not Scheduled, don't do anything.
     XJob job = schedulerDAO.getJob(jobHandle);
     String user = schedulerDAO.getUser(jobHandle);
-    SchedulerJobInstanceHandle instanceHandle = UtilityMethods.generateSchedulerJobInstanceHandle();
+    SchedulerJobInstanceHandle instanceHandle = event.getPreviousInstance() == null ?
+        UtilityMethods.generateSchedulerJobInstanceHandle() :
+        event.getPreviousInstance();
     Map<String, String> conf = new HashMap<>();
     LensSessionHandle sessionHandle = null;
     try {
       // Open the session with the user who submitted the job.
-      sessionHandle = queryService.openSession(user, "dummy", conf, false);
+      sessionHandle = ((QueryExecutionServiceImpl) LensServices.get().getService(QueryExecutionServiceImpl.NAME))
+          .openSession(user, "dummy", conf, false);
     } catch (LensException e) {
       log.error("Error occurred while opening a session ", e);
       return;
     }
     SchedulerJobInstanceInfo instance = null;
+    SchedulerJobInstanceRun run = null;
     // Session needs to be closed after the launch.
-    try (LensSessionImpl session = queryService.getSession(sessionHandle)) {
+    try (LensSessionImpl session = ((QueryExecutionServiceImpl) LensServices.get()
+        .getService(QueryExecutionServiceImpl.NAME)).getSession(sessionHandle)) {
       long scheduledTimeMillis = scheduledTime.getMillis();
       String query = job.getExecution().getQuery().getQuery();
       long currentTime = System.currentTimeMillis();
@@ -91,32 +105,49 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       queryConf.addProperty(LensConfConstants.QUERY_CURRENT_TIME, scheduledTime.getMillis());
       String queryName = job.getName();
       queryName += "-" + scheduledTime.getMillis();
-      instance = new SchedulerJobInstanceInfo(instanceHandle, jobHandle, sessionHandle, currentTime, 0, "N/A",
-          QueryHandle.fromString(null), SchedulerJobInstanceStatus.WAITING, scheduledTimeMillis);
-      boolean success = schedulerDAO.storeJobInstance(instance) == 1;
+      // If the instance is new then create otherwise get from the store
+      if (event.getPreviousInstance() == null) {
+        instance = new SchedulerJobInstanceInfo(instanceHandle, jobHandle, scheduledTimeMillis,
+            new ArrayList<SchedulerJobInstanceRun>());
+      } else {
+        instance = schedulerDAO.getSchedulerJobInstanceInfo(instanceHandle);
+      }
+      // Next run of the instance
+      run = new SchedulerJobInstanceRun(instanceHandle, instance.getInstanceRunList().size() + 1, sessionHandle,
+          currentTime, 0, "N/A", null, new SchedulerJobInstanceState());
+      instance.getInstanceRunList().add(run);
+      boolean success;
+      if (event.getPreviousInstance() == null) {
+        success = schedulerDAO.storeJobInstance(instance) == 1;
+        if (!success) {
+          log.error("Exception occurred while storing the instance for instance handle " + instance + " of job " + jobHandle);
+          return;
+        }
+      }
+      success = schedulerDAO.storeJobInstanceRun(run) == 1;
       if (!success) {
         log.error(
             "Exception occurred while storing the instance for instance handle " + instance + " of job " + jobHandle);
         return;
       }
+
       //TODO: Handle waiting status
       QueryHandle handle = queryService.executeAsync(sessionHandle, query, queryConf, queryName);
-      instance.setQueryHandle(handle);
-      instance.setStatus(SchedulerJobInstanceStatus.LAUNCHED);
-      instance.setEndTime(System.currentTimeMillis());
-      schedulerDAO.updateJobInstance(instance);
-    } catch (LensException e) {
+      run.setQueryHandle(handle);
+      run.setState(run.getState().nextTransition(SchedulerJobInstanceState.EVENT.ON_RUN));
+      run.setEndTime(System.currentTimeMillis());
+      schedulerDAO.updateJobInstanceRun(run);
+    } catch (LensException | HiveSQLException e) {
       log.error(
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
-      instance.setStatus(SchedulerJobInstanceStatus.FAILED);
-      instance.setEndTime(System.currentTimeMillis());
-      schedulerDAO.updateJobInstance(instance);
-    } catch (HiveSQLException e) {
-      log.error("Error occurred for " + jobHandle + " for nominal time " + scheduledTime.getMillis(), e);
-      instance.setStatus(SchedulerJobInstanceStatus.FAILED);
-      instance.setEndTime(System.currentTimeMillis());
-      schedulerDAO.updateJobInstance(instance);
+      try {
+        run.setState(run.getState().nextTransition(SchedulerJobInstanceState.EVENT.ON_FAILURE));
+        run.setEndTime(System.currentTimeMillis());
+        schedulerDAO.updateJobInstanceRun(run);
+      } catch (InvalidStateTransitionException e1) {
+        log.error("Can't make transition for instance " + instance.getId() + " of job " + instance.getJobId(), e);
+      }
     }
   }
 }

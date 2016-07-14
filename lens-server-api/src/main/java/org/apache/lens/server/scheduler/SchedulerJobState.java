@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.lens.server.scheduler.state;
+package org.apache.lens.server.scheduler;
 
 import org.apache.lens.api.scheduler.SchedulerJobStatus;
 import org.apache.lens.server.api.error.InvalidStateTransitionException;
 import org.apache.lens.server.api.scheduler.StateMachine;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,23 +30,25 @@ import lombok.Setter;
  * This class represents current state of a SchedulerJob and provides helper methods
  * for handling different events and lifecycle transition for a SchedulerJob.
  */
+@EqualsAndHashCode
 public class SchedulerJobState {
+  private static final SchedulerJobStatus INITIAL_STATUS = SchedulerJobStatus.NEW;
+  @Getter
+  @Setter
+  private SchedulerJobStatus currentStatus;
 
   public SchedulerJobState(SchedulerJobStatus status) {
     this.currentStatus = status;
   }
+
   public SchedulerJobState() {
     this.currentStatus = INITIAL_STATUS;
   }
 
-  @Getter @Setter
-  private SchedulerJobStatus currentStatus;
-
-  private static final SchedulerJobStatus INITIAL_STATUS = SchedulerJobStatus.NEW;
-
-  public SchedulerJobStatus nextTransition(EVENT event) throws InvalidStateTransitionException {
+  public SchedulerJobState nextTransition(EVENT event) throws InvalidStateTransitionException {
     STATE currentState = STATE.valueOf(currentStatus.name());
-    return SchedulerJobStatus.valueOf(currentState.nextTransition(event).name());
+    STATE newState = currentState.nextTransition(event);
+    return new SchedulerJobState(SchedulerJobStatus.valueOf(newState.name()));
   }
 
   private enum STATE implements StateMachine<STATE, EVENT> {
@@ -63,8 +66,8 @@ public class SchedulerJobState {
         case ON_DELETE:
           return STATE.DELETED;
         default:
-          throw new InvalidStateTransitionException("Event: " + event.name() + " is not a valid event for state: "
-            + this.name());
+          throw new InvalidStateTransitionException(
+              "Event: " + event.name() + " is not a valid event for state: " + this.name());
         }
       }
     },
@@ -82,8 +85,8 @@ public class SchedulerJobState {
         case ON_DELETE:
           return STATE.DELETED;
         default:
-          throw new InvalidStateTransitionException("Event: " + event.name() + " is not a valid event for state: "
-            + this.name());
+          throw new InvalidStateTransitionException(
+              "Event: " + event.name() + " is not a valid event for state: " + this.name());
         }
       }
     },
@@ -101,8 +104,8 @@ public class SchedulerJobState {
         case ON_DELETE:
           return STATE.DELETED;
         default:
-          throw new InvalidStateTransitionException("Event: " + event.name() + " is not a valid event for state: "
-            + this.name());
+          throw new InvalidStateTransitionException(
+              "Event: " + event.name() + " is not a valid event for state: " + this.name());
         }
       }
     },
@@ -116,8 +119,8 @@ public class SchedulerJobState {
         case ON_DELETE:
           return STATE.DELETED;
         default:
-          throw new InvalidStateTransitionException("Event: " + event.name() + " is not a valid event for state: "
-            + this.name());
+          throw new InvalidStateTransitionException(
+              "Event: " + event.name() + " is not a valid event for state: " + this.name());
         }
       }
     },
@@ -129,8 +132,8 @@ public class SchedulerJobState {
         case ON_DELETE:
           return this;
         default:
-          throw new InvalidStateTransitionException("Event: " + event.name() + " is not a valid event for state: "
-            + this.name());
+          throw new InvalidStateTransitionException(
+              "Event: " + event.name() + " is not a valid event for state: " + this.name());
         }
       }
     }

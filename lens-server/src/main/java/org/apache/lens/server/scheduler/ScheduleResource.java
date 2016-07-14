@@ -187,20 +187,21 @@ public class ScheduleResource {
                                 @QueryParam("action") INSTANCE_ACTIONS action) throws LensException {
     validateSession(sessionId);
 
+    boolean result = false;
     switch (action) {
     case KILL:
-      getSchedulerService().killInstance(sessionId, instanceHandle);
+      result = getSchedulerService().killInstance(sessionId, instanceHandle);
       break;
 
     case RERUN:
-      getSchedulerService().rerunInstance(sessionId, instanceHandle);
+      result = getSchedulerService().rerunInstance(sessionId, instanceHandle);
       break;
 
     default:
       throw new BadRequestException("Unsupported action " + action.toString());
 
     }
-    return APIResult.success();
+    return result ? APIResult.success() : APIResult.failure(new LensException("Operation not successful"));
   }
 
 }

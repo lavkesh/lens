@@ -57,7 +57,8 @@ public class SchedulerDAO {
       this.store = (SchedulerDBStore) dbStoreClass.newInstance();
       this.store.init(UtilityMethods.getDataSourceFromConf(conf));
       this.store.createJobTable();
-      this.store.createJobInstaceTable();
+      this.store.createJobInstanceTable();
+      this.store.createJobInstanceRunTable();
     } catch (SQLException e) {
       log.error("Error creating job tables", e);
       throw new LensException("Error creating job tables ", e);
@@ -136,7 +137,7 @@ public class SchedulerDAO {
    * @param id : Job handle id.
    * @return SchedulerJobState of the job.
    */
-  public SchedulerJobStatus getJobState(SchedulerJobHandle id) {
+  public SchedulerJobState getJobState(SchedulerJobHandle id) {
     try {
       return store.getJobState(id.getHandleIdString());
     } catch (SQLException e) {
@@ -168,7 +169,8 @@ public class SchedulerDAO {
    */
   public int updateJobState(SchedulerJobInfo info) {
     try {
-      return store.updateJobState(info.getId().getHandleIdString(), info.getState().name(), info.getModifiedOn());
+      return store.updateJobState(info.getId().getHandleIdString(), info.getState().getCurrentStatus().name(),
+          info.getModifiedOn());
     } catch (SQLException e) {
       log.error("Error while updating job status for " + info.getId().getHandleIdString(), e);
       return 0;
@@ -180,6 +182,17 @@ public class SchedulerDAO {
       return store.insertIntoJobInstanceTable(instanceInfo);
     } catch (SQLException e) {
       log.error("Error while storing job instance for " + instanceInfo.getId());
+      return 0;
+    }
+  }
+
+  public int storeJobInstanceRun(SchedulerJobInstanceRun instanceRun) {
+    try {
+      return store.insertIntoJobInstanceRunTable(instanceRun);
+    } catch (SQLException e) {
+      log.error(
+          "Error while storing job instance run for " + instanceRun.getRunId() + " and instance handle " + instanceRun
+              .getHandle().getHandleIdString(), e);
       return 0;
     }
   }
@@ -202,14 +215,15 @@ public class SchedulerDAO {
   /**
    * Updates the instance status
    *
-   * @param info: Updated instance info
+   * @param instanceRun : instance Run object
    * @return number of rows updated.
    */
-  public int updateJobInstance(SchedulerJobInstanceInfo info) {
+  public int updateJobInstanceRun(SchedulerJobInstanceRun instanceRun) {
     try {
-      return store.updateJobInstance(info);
+      return store.updateJobInstanceRun(instanceRun);
     } catch (SQLException e) {
-      log.error("Error while updating the job instance status for " + info.getId().getHandleIdString(), e);
+      log.error("Error while updating the job instance status for " + instanceRun.getHandle().getHandleIdString()
+          + " and run: " + instanceRun.getRunId(), e);
       return 0;
     }
   }
@@ -266,10 +280,12 @@ public class SchedulerDAO {
   public abstract static class SchedulerDBStore {
     protected static final String JOB_TABLE = "job_table";
     protected static final String JOB_INSTANCE_TABLE = "job_instance_table";
+    protected static final String JOB_INSTANCE_RUN_TABLE = "job_instance_run_table";
     protected static final String COLUMN_ID = "id";
+    protected static final String COLUMN_RUN_ID = "runid";
     protected static final String COLUMN_JOB = "job";
     protected static final String COLUMN_USER = "username";
-    protected static final String COLUMN_STATE = "status";
+    protected static final String COLUMN_STATE = "state";
     protected static final String COLUMN_CREATED_ON = "createdon";
     protected static final String COLUMN_SCHEDULE_TIME = "schedultime";
     protected static final String COLUMN_MODIFIED_ON = "modifiedon";
@@ -321,7 +337,14 @@ public class SchedulerDAO {
      *
      * @throws SQLException
      */
-    public abstract void createJobInstaceTable() throws SQLException;
+    public abstract void createJobInstanceTable() throws SQLException;
+
+    /**
+     * Creates the job instance run table
+     *
+     * @throws SQLException
+     */
+    public abstract void createJobInstanceRunTable() throws SQLException;
 
     /**
      * Inserts the Job info object into job table
@@ -334,7 +357,8 @@ public class SchedulerDAO {
       String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?)";
       JAXBElement<XJob> xmlJob = jobFactory.createJob(jobInfo.getJob());
       return runner.update(insertSQL, jobInfo.getId().toString(), ToXMLString.toString(xmlJob), jobInfo.getUserName(),
-          jobInfo.getState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
+          jobInfo.getState().getCurrentStatus().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(),
+          jobInfo.getJob().getName());
     }
 
     /**
@@ -345,12 +369,19 @@ public class SchedulerDAO {
      * @throws SQLException
      */
     public int insertIntoJobInstanceTable(SchedulerJobInstanceInfo instanceInfo) throws SQLException {
-      String insertSQL = "INSERT INTO " + JOB_INSTANCE_TABLE + " VALUES(?,?,?,?,?,?,?,?,?)";
+      String insertSQL = "INSERT INTO " + JOB_INSTANCE_TABLE + " VALUES(?,?,?)";
       return runner
           .update(insertSQL, instanceInfo.getId().getHandleIdString(), instanceInfo.getJobId().getHandleIdString(),
-              instanceInfo.getSessionHandle().toString(), instanceInfo.getStartTime(), instanceInfo.getEndTime(),
-              instanceInfo.getResultPath(), instanceInfo.getQueryHandle().getHandleIdString(),
-              instanceInfo.getStatus().name(), instanceInfo.getScheduleTime());
+              instanceInfo.getScheduleTime());
+    }
+
+    public int insertIntoJobInstanceRunTable(SchedulerJobInstanceRun instanceRun) throws SQLException {
+      String insetSQL = "INSERT INTO " + JOB_INSTANCE_RUN_TABLE + " VALUES(?,?,?,?,?,?,?,?)";
+      return runner.update(insetSQL, instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId(),
+          instanceRun.getSessionHandle().toString(), instanceRun.getStartTime(), instanceRun.getEndTime(),
+          instanceRun.getResultPath(),
+          instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
+          instanceRun.getState().getCurrentStatus().name());
     }
 
     /**
@@ -373,7 +404,8 @@ public class SchedulerDAO {
         String state = (String) jobInfo[3];
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
-        return new SchedulerJobInfo(id, xJob, userName, SchedulerJobStatus.valueOf(state), createdOn, modifiedOn);
+        SchedulerJobState jobState = new SchedulerJobState(SchedulerJobStatus.valueOf(state));
+        return new SchedulerJobInfo(id, xJob, userName, jobState, createdOn, modifiedOn);
       }
     }
 
@@ -419,13 +451,13 @@ public class SchedulerDAO {
      * @return SchedulerJobState
      * @throws SQLException
      */
-    public SchedulerJobStatus getJobState(String id) throws SQLException {
+    public SchedulerJobState getJobState(String id) throws SQLException {
       String fetchSQL = "SELECT " + COLUMN_STATE + " FROM " + JOB_TABLE + " WHERE " + COLUMN_ID + "=?";
       List<Object[]> result = runner.query(fetchSQL, multipleRowsHandler, id);
       if (result.size() == 0) {
         return null;
       } else {
-        return SchedulerJobStatus.valueOf((String) result.get(0)[0]);
+        return new SchedulerJobState(SchedulerJobStatus.valueOf((String) result.get(0)[0]));
       }
     }
 
@@ -513,33 +545,51 @@ public class SchedulerDAO {
         Object[] instanceInfo = result.get(0);
         SchedulerJobInstanceHandle id = SchedulerJobInstanceHandle.fromString((String) instanceInfo[0]);
         SchedulerJobHandle jobId = SchedulerJobHandle.fromString((String) instanceInfo[1]);
-        LensSessionHandle sessionHandle = LensSessionHandle.valueOf((String) instanceInfo[2]);
-        long starttime = (Long) instanceInfo[3];
-        long endtime = (Long) instanceInfo[4];
-        String resultPath = (String) instanceInfo[5];
-        QueryHandle queryHandle = QueryHandle.fromString((String) instanceInfo[6]);
-        SchedulerJobInstanceStatus state = SchedulerJobInstanceStatus.valueOf((String) instanceInfo[7]);
-        long createdOn = (Long) instanceInfo[8];
-        return new SchedulerJobInstanceInfo(id, jobId, sessionHandle, starttime, endtime, resultPath, queryHandle,
-            state, createdOn);
+        long createdOn = (Long) instanceInfo[2];
+        // Get the Runs
+        fetchSQL = "SELECT * FROM " + JOB_INSTANCE_RUN_TABLE + " WHERE " + COLUMN_ID + "=?";
+        List<Object[]> instanceRuns = runner.query(fetchSQL, multipleRowsHandler, idStr);
+        List<SchedulerJobInstanceRun> runList = new ArrayList<>();
+        for (Object[] run : instanceRuns) {
+          // run[0] will contain the instanceID
+          int runId = (Integer) run[1];
+          LensSessionHandle sessionHandle = LensSessionHandle.valueOf((String) run[2]);
+          long starttime = (Long) run[3];
+          long endtime = (Long) run[4];
+          String resultPath = (String) run[5];
+          String queryHandleString = (String) run[6];
+          QueryHandle queryHandle = null;
+          if (!queryHandleString.isEmpty()) {
+            queryHandle = QueryHandle.fromString((String) run[6]);
+          }
+          SchedulerJobInstanceState state = new SchedulerJobInstanceState(
+              SchedulerJobInstanceStatus.valueOf((String) run[7]));
+          SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime,
+              endtime, resultPath, queryHandle, state);
+          runList.add(instanceRun);
+        }
+        // If there are no instance runs present, It will have a default state.
+        return new SchedulerJobInstanceInfo(id, jobId, createdOn, runList);
       }
     }
 
     /**
      * Updates the status of a job instance.
      *
-     * @param instanceInfo
+     * @param instanceRun
      * @return number of rows updated.
      * @throws SQLException
      */
-    public int updateJobInstance(SchedulerJobInstanceInfo instanceInfo) throws SQLException {
+    public int updateJobInstanceRun(SchedulerJobInstanceRun instanceRun) throws SQLException {
       String updateSQL =
-          "UPDATE " + JOB_INSTANCE_TABLE + " SET " + COLUMN_END_TIME + "=?, " + COLUMN_RESULT_PATH + "=?, "
-              + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATE + "=?" + " WHERE " + COLUMN_ID + "=?";
+          "UPDATE " + JOB_INSTANCE_RUN_TABLE + " SET " + COLUMN_END_TIME + "=?, " + COLUMN_RESULT_PATH + "=?, "
+              + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATE + "=?" + " WHERE " + COLUMN_ID + "=? AND " + COLUMN_RUN_ID
+              + "=?";
 
-      return runner.update(updateSQL, instanceInfo.getEndTime(), instanceInfo.getResultPath(),
-          instanceInfo.getQueryHandle().getHandleIdString(), instanceInfo.getStatus().name(),
-          instanceInfo.getId().getHandleIdString());
+      return runner.update(updateSQL, instanceRun.getEndTime(), instanceRun.getResultPath(),
+          instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
+          instanceRun.getState().getCurrentStatus().name(), instanceRun.getHandle().getHandleIdString(),
+          instanceRun.getRunId());
     }
 
     /**
@@ -599,13 +649,25 @@ public class SchedulerDAO {
      * {@inheritDoc}
      */
     @Override
-    public void createJobInstaceTable() throws SQLException {
+    public void createJobInstanceTable() throws SQLException {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
-              + COLUMN_JOB_ID + " VARCHAR(255) NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), "
-              + COLUMN_START_TIME + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " TEXT, "
-              + COLUMN_QUERY_HANDLE + " TEXT, " + COLUMN_STATE + " VARCHAR(20), " + COLUMN_SCHEDULE_TIME + " BIGINT, "
-              + " PRIMARY KEY ( " + COLUMN_ID + ")" + ")";
+              + COLUMN_JOB_ID + " VARCHAR(255) NOT NULL, " + COLUMN_SCHEDULE_TIME + " BIGINT, " + " PRIMARY KEY ( "
+              + COLUMN_ID + ")" + ")";
+      runner.update(createSQL);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createJobInstanceRunTable() throws SQLException {
+      String createSQL =
+          "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_RUN_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
+              + COLUMN_RUN_ID + " INT NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), " + COLUMN_START_TIME
+              + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " TEXT, " + COLUMN_QUERY_HANDLE
+              + " TEXT, " + COLUMN_STATE + " VARCHAR(20), " + " PRIMARY KEY ( " + COLUMN_ID + ", " + COLUMN_RUN_ID + ")"
+              + ")";
       runner.update(createSQL);
     }
   }
@@ -631,13 +693,25 @@ public class SchedulerDAO {
      * {@inheritDoc}
      */
     @Override
-    public void createJobInstaceTable() throws SQLException {
+    public void createJobInstanceTable() throws SQLException {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
-              + COLUMN_JOB_ID + " VARCHAR(255) NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), "
-              + COLUMN_START_TIME + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " VARCHAR(1024),"
-              + COLUMN_QUERY_HANDLE + " VARCHAR(1024), " + COLUMN_STATE + " VARCHAR(20), " + COLUMN_SCHEDULE_TIME
-              + " BIGINT, " + " PRIMARY KEY ( " + COLUMN_ID + ")" + ")";
+              + COLUMN_JOB_ID + " VARCHAR(255) NOT NULL, " + COLUMN_SCHEDULE_TIME + " BIGINT, " + " PRIMARY KEY ( "
+              + COLUMN_ID + ")" + ")";
+      runner.update(createSQL);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void createJobInstanceRunTable() throws SQLException {
+      String createSQL =
+          "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_RUN_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
+              + COLUMN_RUN_ID + " INT NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), " + COLUMN_START_TIME
+              + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " VARCHAR(1024),"
+              + COLUMN_QUERY_HANDLE + " VARCHAR(1024), " + COLUMN_STATE + " VARCHAR(20), " + " PRIMARY KEY ( "
+              + COLUMN_ID + ", " + COLUMN_RUN_ID + " )" + ")";
       runner.update(createSQL);
     }
   }

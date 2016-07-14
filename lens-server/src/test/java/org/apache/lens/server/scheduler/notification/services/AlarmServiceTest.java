@@ -150,14 +150,15 @@ public class AlarmServiceTest {
         count++;
       }
     }
-    Assert.assertEquals(count, 3);
+    // 3 scheduled events, and one expired event.
+    Assert.assertEquals(count, 4);
     DateTime expectedDate = start;
     Set<DateTime> actualSet = new HashSet<>();
     for (SchedulerAlarmEvent e : events) {
       actualSet.add(e.getNominalTime());
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < actualSet.size(); i++) {
       Assert.assertTrue(actualSet.contains(expectedDate));
       expectedDate = expectedDate.plusDays(1);
     }

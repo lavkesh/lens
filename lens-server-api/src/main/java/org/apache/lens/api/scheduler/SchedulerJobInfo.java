@@ -18,6 +18,8 @@
  */
 package org.apache.lens.api.scheduler;
 
+import org.apache.lens.server.scheduler.SchedulerJobState;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -52,10 +54,10 @@ public class SchedulerJobInfo {
    * @param status status of this job.
    * @return current status of this job
    */
-  private SchedulerJobStatus state;
+  private SchedulerJobState state;
 
   /**
-   * @param scheduleTime time to be set as scheduleTime.
+   * @param createdOn time to be set when it was created.
    * @return time when this job was submitted.
    */
   private long createdOn;
