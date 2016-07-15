@@ -137,15 +137,15 @@ public class SchedulerDAOTest {
     schedulerDAO.storeJobInstanceRun(run2);
     secondInstance.getInstanceRunList().add(run2);
 
-    List<SchedulerJobInstanceHandle> handleList = schedulerDAO.getJobInstances(jobHandle);
+    List<SchedulerJobInstanceInfo> handleList = schedulerDAO.getJobInstances(jobHandle);
     // Size should be 2
     Assert.assertEquals(handleList.size(), 2);
     // Get the definition of instance from the store.
-    SchedulerJobInstanceInfo instance1 = schedulerDAO.getSchedulerJobInstanceInfo(handleList.get(0));
-    Assert.assertEquals(instances.get(handleList.get(0)), instance1);
+    SchedulerJobInstanceInfo instance1 = handleList.get(0);
+    Assert.assertEquals(instances.get(handleList.get(0).getId()), instance1);
 
-    SchedulerJobInstanceInfo instance2 = schedulerDAO.getSchedulerJobInstanceInfo(handleList.get(1));
-    Assert.assertEquals(instances.get(handleList.get(1)), instance2);
+    SchedulerJobInstanceInfo instance2 = handleList.get(1);
+    Assert.assertEquals(instances.get(handleList.get(1).getId()), instance2);
   }
 
   @Test(dependsOnMethods = { "testStoreJob" })

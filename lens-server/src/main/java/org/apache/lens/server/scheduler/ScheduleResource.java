@@ -164,7 +164,7 @@ public class ScheduleResource {
 
   @GET
   @Path("jobs/{jobHandle}/instances/")
-  public List<SchedulerJobInstanceHandle> getJobInstances(@QueryParam("sessionid") LensSessionHandle sessionId,
+  public List<SchedulerJobInstanceInfo> getJobInstances(@QueryParam("sessionid") LensSessionHandle sessionId,
                                                       @PathParam("jobHandle") SchedulerJobHandle jobHandle,
                                                       @QueryParam("numResults") Long numResults) throws LensException {
     validateSession(sessionId);

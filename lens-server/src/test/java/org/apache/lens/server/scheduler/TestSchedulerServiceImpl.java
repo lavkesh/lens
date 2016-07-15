@@ -87,16 +87,17 @@ public class TestSchedulerServiceImpl {
         SchedulerJobStatus.SCHEDULED);
     // Wait for job to finish
     Thread.sleep(30000);
-    List<SchedulerJobInstanceHandle> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
+    List<SchedulerJobInstanceInfo> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
     Assert.assertEquals(instanceHandleList.size() >= 3, true);
     Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle).getCurrentStatus(),
         SchedulerJobStatus.EXPIRED);
     // SuccessFul query
-    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0), QueryStatus.Status.SUCCESSFUL));
+    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.SUCCESSFUL));
     // Wait, for event to get processed
     Thread.sleep(2000);
     // Check the instance value
-    SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0));
+    SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO()
+        .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
     Assert.assertEquals(info.getInstanceRunList().get(0).getResultPath(), "/tmp/query1/result");
     Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
@@ -132,21 +133,22 @@ public class TestSchedulerServiceImpl {
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     // Wait for some instances.
     Thread.sleep(30000);
-    List<SchedulerJobInstanceHandle> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
+    List<SchedulerJobInstanceInfo> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
     // Mark fail
-    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0), QueryStatus.Status.FAILED));
+    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.FAILED));
     Thread.sleep(1000);
-    SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0));
+    SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO()
+        .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     // First run
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
     Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.FAILED);
 
     // Rerun
-    Assert.assertTrue(scheduler.rerunInstance(sessionHandle, instanceHandleList.get(0)));
+    Assert.assertTrue(scheduler.rerunInstance(sessionHandle, instanceHandleList.get(0).getId()));
     Thread.sleep(3000);
-    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0), QueryStatus.Status.SUCCESSFUL));
+    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.SUCCESSFUL));
     Thread.sleep(1000);
-    info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0));
+    info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     // There should be 2 reruns.
     Assert.assertEquals(info.getInstanceRunList().size(), 2);
     Assert.assertEquals(info.getInstanceRunList().get(1).getResultPath(), "/tmp/query1/result");

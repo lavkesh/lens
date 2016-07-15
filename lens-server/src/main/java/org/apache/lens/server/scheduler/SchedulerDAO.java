@@ -233,7 +233,7 @@ public class SchedulerDAO {
    * @param id: Job handle id.
    * @return List of instance handles.
    */
-  public List<SchedulerJobInstanceHandle> getJobInstances(SchedulerJobHandle id) {
+  public List<SchedulerJobInstanceInfo> getJobInstances(SchedulerJobHandle id) {
     // TODO: Add number of results to be fetched
     try {
       return store.getAllJobInstances(id.getHandleIdString());
@@ -541,33 +541,36 @@ public class SchedulerDAO {
         return null;
       } else {
         Object[] instanceInfo = result.get(0);
-        SchedulerJobInstanceHandle id = SchedulerJobInstanceHandle.fromString((String) instanceInfo[0]);
-        SchedulerJobHandle jobId = SchedulerJobHandle.fromString((String) instanceInfo[1]);
-        long createdOn = (Long) instanceInfo[2];
-        // Get the Runs
-        fetchSQL = "SELECT * FROM " + JOB_INSTANCE_RUN_TABLE + " WHERE " + COLUMN_ID + "=?";
-        List<Object[]> instanceRuns = runner.query(fetchSQL, multipleRowsHandler, idStr);
-        List<SchedulerJobInstanceRun> runList = new ArrayList<>();
-        for (Object[] run : instanceRuns) {
-          // run[0] will contain the instanceID
-          int runId = (Integer) run[1];
-          LensSessionHandle sessionHandle = LensSessionHandle.valueOf((String) run[2]);
-          long starttime = (Long) run[3];
-          long endtime = (Long) run[4];
-          String resultPath = (String) run[5];
-          String queryHandleString = (String) run[6];
-          QueryHandle queryHandle = null;
-          if (!queryHandleString.isEmpty()) {
-            queryHandle = QueryHandle.fromString((String) run[6]);
-          }
-          SchedulerJobInstanceStatus state = SchedulerJobInstanceStatus.valueOf((String) run[7]);
-          SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime,
-              endtime, resultPath, queryHandle, state);
-          runList.add(instanceRun);
-        }
-        // If there are no instance runs present, It will have a default state.
-        return new SchedulerJobInstanceInfo(id, jobId, createdOn, runList);
+        return parseSchedulerInstance(instanceInfo);
       }
+    }
+
+    private SchedulerJobInstanceInfo parseSchedulerInstance(Object[] instanceInfo) throws SQLException {
+      SchedulerJobInstanceHandle id = SchedulerJobInstanceHandle.fromString((String) instanceInfo[0]);
+      SchedulerJobHandle jobId = SchedulerJobHandle.fromString((String) instanceInfo[1]);
+      long createdOn = (Long) instanceInfo[2];
+      // Get the Runs
+      String fetchSQL = "SELECT * FROM " + JOB_INSTANCE_RUN_TABLE + " WHERE " + COLUMN_ID + "=?";
+      List<Object[]> instanceRuns = runner.query(fetchSQL, multipleRowsHandler, (String)instanceInfo[0]);
+      List<SchedulerJobInstanceRun> runList = new ArrayList<>();
+      for (Object[] run : instanceRuns) {
+        // run[0] will contain the instanceID
+        int runId = (Integer) run[1];
+        LensSessionHandle sessionHandle = LensSessionHandle.valueOf((String) run[2]);
+        long starttime = (Long) run[3];
+        long endtime = (Long) run[4];
+        String resultPath = (String) run[5];
+        String queryHandleString = (String) run[6];
+        QueryHandle queryHandle = null;
+        if (!queryHandleString.isEmpty()) {
+          queryHandle = QueryHandle.fromString((String) run[6]);
+        }
+        SchedulerJobInstanceStatus state = SchedulerJobInstanceStatus.valueOf((String) run[7]);
+        SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime,
+            endtime, resultPath, queryHandle, state);
+        runList.add(instanceRun);
+      }
+      return new SchedulerJobInstanceInfo(id, jobId, createdOn, runList);
     }
 
     /**
@@ -595,13 +598,13 @@ public class SchedulerDAO {
      * @return List of SchedulerJobInstanceHandle
      * @throws SQLException
      */
-    public List<SchedulerJobInstanceHandle> getAllJobInstances(String jobId) throws SQLException {
-      String fetchSQL = "SELECT " + COLUMN_ID + " FROM " + JOB_INSTANCE_TABLE + " WHERE " + COLUMN_JOB_ID + "=?";
+    public List<SchedulerJobInstanceInfo> getAllJobInstances(String jobId) throws SQLException {
+      String fetchSQL = "SELECT * FROM " + JOB_INSTANCE_TABLE + " WHERE " + COLUMN_JOB_ID + "=?";
       List<Object[]> result = runner.query(fetchSQL, multipleRowsHandler, jobId);
-      List<SchedulerJobInstanceHandle> resOut = new ArrayList<>();
+      List<SchedulerJobInstanceInfo> resOut = new ArrayList<>();
       for (int i = 0; i < result.size(); i++) {
         Object[] row = result.get(i);
-        resOut.add(SchedulerJobInstanceHandle.fromString((String) row[0]));
+        resOut.add(parseSchedulerInstance(row));
       }
       return resOut;
     }

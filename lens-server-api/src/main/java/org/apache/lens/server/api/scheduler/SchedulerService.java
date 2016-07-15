@@ -183,7 +183,7 @@ public interface SchedulerService extends LensService, SessionValidator{
    * @return list of instance ids for the job
    * @throws LensException the lens exception
    */
-  List<SchedulerJobInstanceHandle> getJobInstances(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle,
+  List<SchedulerJobInstanceInfo> getJobInstances(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle,
       Long numResults) throws LensException;
 
   /**

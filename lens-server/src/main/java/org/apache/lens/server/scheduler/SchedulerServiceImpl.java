@@ -278,7 +278,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
    * {@inheritDoc}
    */
   @Override
-  public List<SchedulerJobInstanceHandle> getJobInstances(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle,
+  public List<SchedulerJobInstanceInfo> getJobInstances(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle,
       Long numResults) throws LensException {
     return schedulerDAO.getJobInstances(jobHandle);
   }
