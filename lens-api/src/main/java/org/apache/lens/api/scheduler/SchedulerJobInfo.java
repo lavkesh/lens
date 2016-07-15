@@ -18,43 +18,52 @@
  */
 package org.apache.lens.api.scheduler;
 
-import java.util.List;
-
-import org.apache.lens.server.scheduler.SchedulerJobInstanceState;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 /**
- * POJO for an instance of SchedulerJob.
+ * POJO to represent the <code>job</code> table in the database.
  */
 @Data
 @AllArgsConstructor
-public class SchedulerJobInstanceInfo {
+public class SchedulerJobInfo {
 
   /**
-   * @param id new id for the instance of scheduler job.
-   * @return unique id for this instance of scheduler job.
+   * ID of the job.
+   * Each job has a unique id which can be used to query it.
+   *
+   * @param id new value for ID.
+   * @return ID for the current job.
    */
-  private SchedulerJobInstanceHandle id;
+  private SchedulerJobHandle id;
 
   /**
-   * @param jobId new id for the scheduler job.
-   * @return id for the scheduler job to which this instance belongs.
+   * Definition of the job scheduled.
    */
-  private SchedulerJobHandle jobId;
+  private XJob job;
 
   /**
-   * @param scheduleTime time to be set as the nomial time for the instance.
-   * @return scheduled time of this instance.
+   * @param userName userName to be set.
+   * @return name of the user who scheduled this job.
    */
-  private long scheduleTime;
+  private String userName;
 
   /**
-   * @param instanceRunList: List of runs.
-   * @return A list of instance-run for this instance.
+   * @param status status of this job.
+   * @return current status of this job
    */
-  private List<SchedulerJobInstanceRun> instanceRunList;
+  private SchedulerJobStatus state;
+
+  /**
+   * @param createdOn time to be set when it was created.
+   * @return time when this job was submitted.
+   */
+  private long createdOn;
+
+  /**
+   * @param modifiedOn time to be set as modifiedOn time for this job.
+   * @return last modified time for this job
+   */
+  private long modifiedOn;
 
 }

@@ -114,13 +114,14 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       }
       // Next run of the instance
       run = new SchedulerJobInstanceRun(instanceHandle, instance.getInstanceRunList().size() + 1, sessionHandle,
-          currentTime, 0, "N/A", null, new SchedulerJobInstanceState());
+          currentTime, 0, "N/A", null, SchedulerJobInstanceStatus.WAITING);
       instance.getInstanceRunList().add(run);
       boolean success;
       if (event.getPreviousInstance() == null) {
         success = schedulerDAO.storeJobInstance(instance) == 1;
         if (!success) {
-          log.error("Exception occurred while storing the instance for instance handle " + instance + " of job " + jobHandle);
+          log.error(
+              "Exception occurred while storing the instance for instance handle " + instance + " of job " + jobHandle);
           return;
         }
       }
@@ -134,7 +135,8 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       //TODO: Handle waiting status
       QueryHandle handle = queryService.executeAsync(sessionHandle, query, queryConf, queryName);
       run.setQueryHandle(handle);
-      run.setState(run.getState().nextTransition(SchedulerJobInstanceState.EVENT.ON_RUN));
+      run.setState(new SchedulerJobInstanceState(run.getState()).nextTransition(SchedulerJobInstanceState.EVENT.ON_RUN)
+          .getCurrentStatus());
       run.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstanceRun(run);
     } catch (LensException | HiveSQLException e) {
@@ -142,7 +144,9 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
       try {
-        run.setState(run.getState().nextTransition(SchedulerJobInstanceState.EVENT.ON_FAILURE));
+        run.setState(
+            new SchedulerJobInstanceState(run.getState()).nextTransition(SchedulerJobInstanceState.EVENT.ON_FAILURE)
+                .getCurrentStatus());
         run.setEndTime(System.currentTimeMillis());
         schedulerDAO.updateJobInstanceRun(run);
       } catch (InvalidStateTransitionException e1) {

@@ -99,8 +99,7 @@ public class TestSchedulerServiceImpl {
     SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0));
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
     Assert.assertEquals(info.getInstanceRunList().get(0).getResultPath(), "/tmp/query1/result");
-    Assert.assertEquals(info.getInstanceRunList().get(0).getState().getCurrentStatus(),
-        SchedulerJobInstanceStatus.SUCCEEDED);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
   }
 
   @Test
@@ -140,8 +139,7 @@ public class TestSchedulerServiceImpl {
     SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0));
     // First run
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
-    Assert.assertEquals(info.getInstanceRunList().get(0).getState().getCurrentStatus(),
-        SchedulerJobInstanceStatus.FAILED);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.FAILED);
 
     // Rerun
     Assert.assertTrue(scheduler.rerunInstance(sessionHandle, instanceHandleList.get(0)));
@@ -152,8 +150,7 @@ public class TestSchedulerServiceImpl {
     // There should be 2 reruns.
     Assert.assertEquals(info.getInstanceRunList().size(), 2);
     Assert.assertEquals(info.getInstanceRunList().get(1).getResultPath(), "/tmp/query1/result");
-    Assert.assertEquals(info.getInstanceRunList().get(1).getState().getCurrentStatus(),
-        SchedulerJobInstanceStatus.SUCCEEDED);
+    Assert.assertEquals(info.getInstanceRunList().get(1).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
   }
 
   private XTrigger getTestTrigger(String cron) {

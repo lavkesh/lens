@@ -47,7 +47,7 @@ public class SchedulerQueryEventListener extends AsyncEventListener<QueryEnded> 
       return;
     }
     SchedulerJobInstanceRun latestRun = runList.get(runList.size() - 1);
-    SchedulerJobInstanceState state = latestRun.getState();
+    SchedulerJobInstanceState state = new SchedulerJobInstanceState(latestRun.getState());
     try {
       switch (event.getCurrentValue()) {
       case CANCELED:
@@ -61,7 +61,7 @@ public class SchedulerQueryEventListener extends AsyncEventListener<QueryEnded> 
         break;
       }
       latestRun.setEndTime(System.currentTimeMillis());
-      latestRun.setState(state);
+      latestRun.setState(state.getCurrentStatus());
       latestRun.setResultPath(queryContext.getDriverResultPath());
       schedulerDAO.updateJobInstanceRun(latestRun);
     } catch (InvalidStateTransitionException e) {

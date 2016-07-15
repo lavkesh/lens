@@ -114,7 +114,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     SchedulerJobHandle handle = UtilityMethods.generateSchedulerJobHandle();
     long createdOn = System.currentTimeMillis();
     long modifiedOn = createdOn;
-    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getUserName(), new SchedulerJobState(), createdOn,
+    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getUserName(), SchedulerJobStatus.NEW, createdOn,
         modifiedOn);
     if (schedulerDAO.storeJob(info) == 1) {
       return handle;
@@ -267,7 +267,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     }
     SchedulerJobInstanceRun latestRun = runList.get(runList.size() - 1);
     // This call is for the test that it can be re run.
-    latestRun.getState().nextTransition(SchedulerJobInstanceState.EVENT.ON_RERUN);
+    new SchedulerJobInstanceState(latestRun.getState()).nextTransition(SchedulerJobInstanceState.EVENT.ON_RERUN);
     getEventService().notifyEvent(
         new SchedulerAlarmEvent(instanceInfo.getJobId(), new DateTime(instanceInfo.getScheduleTime()),
             SchedulerAlarmEvent.EventType.SCHEDULE, instanceHandle));
@@ -314,10 +314,10 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
 
   private int setStateOfJob(SchedulerJobHandle handle, SchedulerJobState.EVENT event) throws LensException {
     SchedulerJobInfo info = schedulerDAO.getSchedulerJobInfo(handle);
-    SchedulerJobState currentState = info.getState();
+    SchedulerJobState currentState = new SchedulerJobState(info.getState());
     // This can throw LensException wrapping InvalidStateTransitionException
     SchedulerJobState nextState = currentState.nextTransition(event);
-    info.setState(nextState);
+    info.setState(nextState.getCurrentStatus());
     info.setModifiedOn(System.currentTimeMillis());
     return schedulerDAO.updateJobState(info);
   }

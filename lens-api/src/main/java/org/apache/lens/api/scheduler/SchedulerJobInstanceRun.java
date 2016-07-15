@@ -2,7 +2,6 @@ package org.apache.lens.api.scheduler;
 
 import org.apache.lens.api.LensSessionHandle;
 import org.apache.lens.api.query.QueryHandle;
-import org.apache.lens.server.scheduler.SchedulerJobInstanceState;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -58,6 +57,6 @@ public class SchedulerJobInstanceRun {
    * @param status status to be set.
    * @return status of this instance.
    */
-  private SchedulerJobInstanceState state;
+  private SchedulerJobInstanceStatus state;
 
 }

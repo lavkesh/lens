@@ -169,8 +169,7 @@ public class SchedulerDAO {
    */
   public int updateJobState(SchedulerJobInfo info) {
     try {
-      return store.updateJobState(info.getId().getHandleIdString(), info.getState().getCurrentStatus().name(),
-          info.getModifiedOn());
+      return store.updateJobState(info.getId().getHandleIdString(), info.getState().name(), info.getModifiedOn());
     } catch (SQLException e) {
       log.error("Error while updating job status for " + info.getId().getHandleIdString(), e);
       return 0;
@@ -357,8 +356,7 @@ public class SchedulerDAO {
       String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?)";
       JAXBElement<XJob> xmlJob = jobFactory.createJob(jobInfo.getJob());
       return runner.update(insertSQL, jobInfo.getId().toString(), ToXMLString.toString(xmlJob), jobInfo.getUserName(),
-          jobInfo.getState().getCurrentStatus().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(),
-          jobInfo.getJob().getName());
+          jobInfo.getState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
     }
 
     /**
@@ -381,7 +379,7 @@ public class SchedulerDAO {
           instanceRun.getSessionHandle().toString(), instanceRun.getStartTime(), instanceRun.getEndTime(),
           instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getState().getCurrentStatus().name());
+          instanceRun.getState().name());
     }
 
     /**
@@ -404,8 +402,8 @@ public class SchedulerDAO {
         String state = (String) jobInfo[3];
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
-        SchedulerJobState jobState = new SchedulerJobState(SchedulerJobStatus.valueOf(state));
-        return new SchedulerJobInfo(id, xJob, userName, jobState, createdOn, modifiedOn);
+        SchedulerJobStatus status = SchedulerJobStatus.valueOf(state);
+        return new SchedulerJobInfo(id, xJob, userName, status, createdOn, modifiedOn);
       }
     }
 
@@ -562,8 +560,7 @@ public class SchedulerDAO {
           if (!queryHandleString.isEmpty()) {
             queryHandle = QueryHandle.fromString((String) run[6]);
           }
-          SchedulerJobInstanceState state = new SchedulerJobInstanceState(
-              SchedulerJobInstanceStatus.valueOf((String) run[7]));
+          SchedulerJobInstanceStatus state = SchedulerJobInstanceStatus.valueOf((String) run[7]);
           SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime,
               endtime, resultPath, queryHandle, state);
           runList.add(instanceRun);
@@ -588,8 +585,7 @@ public class SchedulerDAO {
 
       return runner.update(updateSQL, instanceRun.getEndTime(), instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getState().getCurrentStatus().name(), instanceRun.getHandle().getHandleIdString(),
-          instanceRun.getRunId());
+          instanceRun.getState().name(), instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId());
     }
 
     /**
