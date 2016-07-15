@@ -56,6 +56,9 @@ public class TestSchedulerServiceImpl {
     PowerMockito.when(scheduler.getQueryService()
         .executeAsync(any(LensSessionHandle.class), anyString(), any(LensConf.class), anyString()))
         .thenReturn(new QueryHandle(UUID.randomUUID()));
+    PowerMockito.when(scheduler.getQueryService().cancelQuery(any(LensSessionHandle.class), any(QueryHandle.class)))
+        .thenReturn(true);
+
     scheduler.getSchedulerEventListener().setQueryService(queryExecutionService);
   }
 
@@ -153,6 +156,30 @@ public class TestSchedulerServiceImpl {
     Assert.assertEquals(info.getInstanceRunList().size(), 2);
     Assert.assertEquals(info.getInstanceRunList().get(1).getResultPath(), "/tmp/query1/result");
     Assert.assertEquals(info.getInstanceRunList().get(1).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
+  }
+
+  @Test
+  public void killRunningInstance() throws Exception {
+    LensSessionHandle sessionHandle = ((QueryExecutionServiceImpl) LensServices.get()
+        .getService(QueryExecutionService.NAME)).openSession("test", "test", new HashMap<String, String>(), false);
+    long currentTime = System.currentTimeMillis();
+
+    XJob job = getTestJob("0/5 * * * * ?", currentTime, currentTime + 180000);
+    SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
+    // Let it run
+    Thread.sleep(6000);
+    List<SchedulerJobInstanceInfo> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
+    Assert.assertTrue(scheduler.killInstance(sessionHandle, instanceHandleList.get(0).getId()));
+    Thread.sleep(2000);
+    SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO()
+        .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
+    Assert.assertEquals(info.getInstanceRunList().size(), 1);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.RUNNING);
+    // Query End event
+    eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.CANCELED));
+    Thread.sleep(2000);
+    info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
+    Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.KILLED);
   }
 
   private XTrigger getTestTrigger(String cron) {

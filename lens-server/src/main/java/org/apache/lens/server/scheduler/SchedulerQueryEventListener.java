@@ -10,6 +10,7 @@ import org.apache.lens.server.api.error.InvalidStateTransitionException;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.query.QueryContext;
 import org.apache.lens.server.api.query.QueryEnded;
+import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 
 import lombok.extern.slf4j.Slf4j;
 

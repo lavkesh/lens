@@ -49,7 +49,7 @@ import org.apache.lens.server.healthcheck.LensServiceHealthCheck;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
 import org.apache.lens.server.quota.QuotaServiceImpl;
 import org.apache.lens.server.scheduler.SchedulerServiceImpl;
-import org.apache.lens.server.scheduler.notification.services.AlarmService;
+import org.apache.lens.server.scheduler.AlarmService;
 import org.apache.lens.server.session.DatabaseResourceService;
 import org.apache.lens.server.session.HiveSessionService;
 

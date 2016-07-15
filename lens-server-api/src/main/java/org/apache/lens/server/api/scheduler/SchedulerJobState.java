@@ -16,61 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.lens.server.scheduler;
+package org.apache.lens.server.api.scheduler;
 
-import org.apache.lens.api.scheduler.SchedulerJobInstanceStatus;
+import org.apache.lens.api.scheduler.SchedulerJobStatus;
 import org.apache.lens.server.api.error.InvalidStateTransitionException;
-import org.apache.lens.server.api.scheduler.StateMachine;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * State machine for transitions on Scheduler Jobs.
+ * This class represents current state of a SchedulerJob and provides helper methods
+ * for handling different events and lifecycle transition for a SchedulerJob.
  */
 @EqualsAndHashCode
-public class SchedulerJobInstanceState {
-
-  private static final SchedulerJobInstanceStatus INITIAL_STATUS = SchedulerJobInstanceStatus.WAITING;
+public class SchedulerJobState {
+  private static final SchedulerJobStatus INITIAL_STATUS = SchedulerJobStatus.NEW;
   @Getter
   @Setter
-  private SchedulerJobInstanceStatus currentStatus;
+  private SchedulerJobStatus currentStatus;
 
-  public SchedulerJobInstanceState(SchedulerJobInstanceStatus status) {
+  public SchedulerJobState(SchedulerJobStatus status) {
     this.currentStatus = status;
   }
 
-  public SchedulerJobInstanceState() {
+  public SchedulerJobState() {
     this.currentStatus = INITIAL_STATUS;
   }
 
-  public SchedulerJobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+  public SchedulerJobState nextTransition(EVENT event) throws InvalidStateTransitionException {
     STATE currentState = STATE.valueOf(currentStatus.name());
     STATE newState = currentState.nextTransition(event);
-    return new SchedulerJobInstanceState(SchedulerJobInstanceStatus.valueOf(newState.name()));
+    return new SchedulerJobState(SchedulerJobStatus.valueOf(newState.name()));
   }
 
-  public enum STATE implements StateMachine<STATE, EVENT> {
+  private enum STATE implements StateMachine<STATE, EVENT> {
     // repeating same operation will return the same state to ensure idempotent behavior.
-    WAITING {
+    NEW {
       @Override
       public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
-        case ON_CREATION:
+        case ON_SUBMIT:
           return this;
-        case ON_CONDITIONS_MET:
-          return STATE.LAUNCHED;
-        case ON_TIME_OUT:
-          return STATE.TIMED_OUT;
-        case ON_RUN:
-          return STATE.RUNNING;
-        case ON_SUCCESS:
-          return STATE.SUCCEEDED;
-        case ON_FAILURE:
-          return STATE.FAILED;
-        case ON_KILL:
-          return STATE.KILLED;
+        case ON_SCHEDULE:
+          return STATE.SCHEDULED;
+        case ON_EXPIRE:
+          return STATE.EXPIRED;
+        case ON_DELETE:
+          return STATE.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -78,20 +71,18 @@ public class SchedulerJobInstanceState {
       }
     },
 
-    LAUNCHED {
+    SCHEDULED {
       @Override
       public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
-        case ON_CONDITIONS_MET:
+        case ON_SCHEDULE:
           return this;
-        case ON_RUN:
-          return STATE.RUNNING;
-        case ON_SUCCESS:
-          return STATE.SUCCEEDED;
-        case ON_FAILURE:
-          return STATE.FAILED;
-        case ON_KILL:
-          return STATE.KILLED;
+        case ON_SUSPEND:
+          return STATE.SUSPENDED;
+        case ON_EXPIRE:
+          return STATE.EXPIRED;
+        case ON_DELETE:
+          return STATE.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -99,18 +90,18 @@ public class SchedulerJobInstanceState {
       }
     },
 
-    RUNNING {
+    SUSPENDED {
       @Override
       public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
-        case ON_RUN:
+        case ON_SUSPEND:
           return this;
-        case ON_SUCCESS:
-          return STATE.SUCCEEDED;
-        case ON_FAILURE:
-          return STATE.FAILED;
-        case ON_KILL:
-          return STATE.KILLED;
+        case ON_RESUME:
+          return STATE.SCHEDULED;
+        case ON_EXPIRE:
+          return STATE.EXPIRED;
+        case ON_DELETE:
+          return STATE.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -118,14 +109,14 @@ public class SchedulerJobInstanceState {
       }
     },
 
-    FAILED {
+    EXPIRED {
       @Override
       public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
-        case ON_FAILURE:
+        case ON_EXPIRE:
           return this;
-        case ON_RERUN:
-          return STATE.LAUNCHED;
+        case ON_DELETE:
+          return STATE.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -133,44 +124,12 @@ public class SchedulerJobInstanceState {
       }
     },
 
-    SUCCEEDED {
+    DELETED {
       @Override
       public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
-        case ON_SUCCESS:
+        case ON_DELETE:
           return this;
-        case ON_RERUN:
-          return STATE.LAUNCHED;
-        default:
-          throw new InvalidStateTransitionException(
-              "Event: " + event.name() + " is not a valid event for state: " + this.name());
-        }
-      }
-    },
-
-    TIMED_OUT {
-      @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
-        switch (event) {
-        case ON_TIME_OUT:
-          return this;
-        case ON_RERUN:
-          return STATE.WAITING;
-        default:
-          throw new InvalidStateTransitionException(
-              "Event: " + event.name() + " is not a valid event for state: " + this.name());
-        }
-      }
-    },
-
-    KILLED {
-      @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
-        switch (event) {
-        case ON_KILL:
-          return this;
-        case ON_RERUN:
-          return STATE.LAUNCHED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -180,16 +139,14 @@ public class SchedulerJobInstanceState {
   }
 
   /**
-   * All events(actions) which can happen on an instance of <code>SchedulerJob</code>.
+   * All events(actions) which can happen on a Scheduler Job.
    */
   public enum EVENT {
-    ON_CREATION, // an instance is first considered by the scheduler.
-    ON_TIME_OUT,
-    ON_CONDITIONS_MET,
-    ON_RUN,
-    ON_SUCCESS,
-    ON_FAILURE,
-    ON_RERUN,
-    ON_KILL
+    ON_SUBMIT,
+    ON_SCHEDULE,
+    ON_SUSPEND,
+    ON_RESUME,
+    ON_EXPIRE,
+    ON_DELETE
   }
 }

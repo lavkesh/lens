@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.lens.server.scheduler.notification.services;
+package org.apache.lens.server.scheduler;
 
 import org.apache.lens.api.scheduler.SchedulerJobHandle;
 import org.apache.lens.api.scheduler.XFrequency;

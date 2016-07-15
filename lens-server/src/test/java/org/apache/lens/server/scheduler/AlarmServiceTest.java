@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.lens.server.scheduler.notification.services;
+package org.apache.lens.server.scheduler;
 
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;

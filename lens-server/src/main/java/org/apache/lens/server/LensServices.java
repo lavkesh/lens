@@ -37,7 +37,7 @@ import org.apache.lens.server.api.metrics.MetricsService;
 import org.apache.lens.server.metrics.MetricsServiceImpl;
 import org.apache.lens.server.model.LogSegregationContext;
 import org.apache.lens.server.model.MappedDiagnosticLogSegregationContext;
-import org.apache.lens.server.scheduler.notification.services.AlarmService;
+import org.apache.lens.server.scheduler.AlarmService;
 import org.apache.lens.server.session.LensSessionImpl;
 import org.apache.lens.server.stats.StatisticsService;
 import org.apache.lens.server.user.UserConfigLoaderFactory;

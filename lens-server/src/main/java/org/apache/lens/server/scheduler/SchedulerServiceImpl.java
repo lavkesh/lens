@@ -32,8 +32,9 @@ import org.apache.lens.server.api.events.SchedulerAlarmEvent;
 import org.apache.lens.server.api.health.HealthStatus;
 import org.apache.lens.server.api.query.QueryEnded;
 import org.apache.lens.server.api.query.QueryExecutionService;
+import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
+import org.apache.lens.server.api.scheduler.SchedulerJobState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
-import org.apache.lens.server.scheduler.notification.services.AlarmService;
 import org.apache.lens.server.scheduler.util.UtilityMethods;
 import org.apache.lens.server.session.LensSessionImpl;
 

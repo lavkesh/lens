@@ -127,7 +127,7 @@ class TimerangeResolver implements ContextRewriter {
         toDateRaw = PlanUtils.stripQuotes(timenode.getChild(3).getText());
       }
     }
-    long currentTime = cubeql.getConf().getLong(LensConfConstants.QUERY_CURRENT_TIME, 0);
+    long currentTime = cubeql.getConf().getLong(LensConfConstants.QUERY_CURRENT_TIME_IN_MILLIS, 0);
     Date now;
     if (currentTime != 0) {
       now = new Date(currentTime);

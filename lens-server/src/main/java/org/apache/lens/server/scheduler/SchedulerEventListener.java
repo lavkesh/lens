@@ -16,6 +16,7 @@ import org.apache.lens.server.api.error.LensException;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.events.SchedulerAlarmEvent;
 import org.apache.lens.server.api.query.QueryExecutionService;
+import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
 import org.apache.lens.server.scheduler.util.UtilityMethods;
@@ -102,7 +103,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       }
       queryConf.addProperty(JOB_INSTANCE_ID_KEY, instanceHandle.getHandleId());
       // Current time is used for resolving date.
-      queryConf.addProperty(LensConfConstants.QUERY_CURRENT_TIME, scheduledTime.getMillis());
+      queryConf.addProperty(LensConfConstants.QUERY_CURRENT_TIME_IN_MILLIS, scheduledTime.getMillis());
       String queryName = job.getName();
       queryName += "-" + scheduledTime.getMillis();
       // If the instance is new then create otherwise get from the store

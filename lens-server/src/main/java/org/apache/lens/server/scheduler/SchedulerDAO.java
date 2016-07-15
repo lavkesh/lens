@@ -32,6 +32,7 @@ import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.api.LensConfConstants;
 import org.apache.lens.server.api.error.LensException;
+import org.apache.lens.server.api.scheduler.SchedulerJobState;
 import org.apache.lens.server.scheduler.util.UtilityMethods;
 
 import org.apache.commons.dbcp.BasicDataSource;
