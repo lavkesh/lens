@@ -35,8 +35,8 @@ import org.apache.lens.server.api.query.QueryExecutionService;
 import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 import org.apache.lens.server.api.scheduler.SchedulerJobState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
-import org.apache.lens.server.util.UtilityMethods;
 import org.apache.lens.server.session.LensSessionImpl;
+import org.apache.lens.server.util.UtilityMethods;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hive.service.cli.CLIService;
@@ -104,9 +104,9 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
    */
   @Override
   public HealthStatus getHealthStatus() {
-    return this.getServiceState().equals(STATE.STARTED) ?
-        new HealthStatus(true, "Scheduler service is healthy.") :
-        new HealthStatus(false, "Scheduler service is down.");
+    return this.getServiceState().equals(STATE.STARTED)
+           ? new HealthStatus(true, "Scheduler service is healthy.")
+           : new HealthStatus(false, "Scheduler service is down.");
   }
 
   /**
@@ -179,7 +179,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
    */
   @Override
   public SchedulerJobInfo getJobDetails(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle)
-  throws LensException {
+    throws LensException {
     return schedulerDAO.getSchedulerJobInfo(jobHandle);
   }
 
@@ -188,7 +188,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
    */
   @Override
   public boolean updateJob(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle, XJob newJobDefinition)
-  throws LensException {
+    throws LensException {
     SchedulerJobInfo jobInfo = schedulerDAO.getSchedulerJobInfo(jobHandle);
     // This will allow only the job definition and configuration change.
     // TODO: fix start and end time changes
@@ -261,7 +261,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
    */
   @Override
   public boolean rerunInstance(LensSessionHandle sessionHandle, SchedulerJobInstanceHandle instanceHandle)
-  throws LensException {
+    throws LensException {
     SchedulerJobInstanceInfo instanceInfo = schedulerDAO.getSchedulerJobInstanceInfo(instanceHandle);
     if (schedulerDAO.getJobStatus(instanceInfo.getJobId()) != SchedulerJobStatus.SCHEDULED) {
       throw new LensException("Job with handle " + instanceInfo.getJobId() + " is not scheduled");
@@ -292,7 +292,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
 
   @Override
   public boolean killInstance(LensSessionHandle sessionHandle, SchedulerJobInstanceHandle instanceHandle)
-  throws LensException {
+    throws LensException {
     /**
      * Get the query handle from the latest run.
      */

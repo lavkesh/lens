@@ -19,7 +19,6 @@
 package org.apache.lens.cube.parse;
 
 import static org.apache.hadoop.hive.ql.parse.HiveParser.*;
-import static org.apache.lens.cube.parse.CandidateTablePruneCause.CandidateTablePruneCode.FACT_NOT_AVAILABLE_IN_RANGE;
 
 import java.util.*;
 
@@ -261,6 +260,6 @@ class TimerangeResolver implements ContextRewriter {
         iter.remove();
       }
     }
-    cubeql.pruneCandidateFactSet(FACT_NOT_AVAILABLE_IN_RANGE);
+    cubeql.pruneCandidateFactSet(CandidateTablePruneCause.CandidateTablePruneCode.FACT_NOT_AVAILABLE_IN_RANGE);
   }
 }

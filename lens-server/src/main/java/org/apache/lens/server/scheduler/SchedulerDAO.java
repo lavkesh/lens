@@ -470,7 +470,7 @@ public class SchedulerDAO {
      * @throws SQLException
      */
     public List<SchedulerJobHandle> getJobs(String username, String status, Long starttime, Long endtime)
-    throws SQLException {
+      throws SQLException {
       String whereClause = "";
       if (username != null && !username.isEmpty()) {
         whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_USER + " = '" + username + "'";

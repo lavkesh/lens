@@ -99,7 +99,7 @@ public interface SchedulerService extends LensService, SessionValidator {
    * @throws LensException the lens exception
    */
   boolean updateJob(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle, XJob newJobDefinition)
-  throws LensException;
+    throws LensException;
 
   /**
    * End a job by specifying an expiry time.
@@ -210,7 +210,7 @@ public interface SchedulerService extends LensService, SessionValidator {
    * @throws LensException the lens exception
    */
   boolean rerunInstance(LensSessionHandle sessionHandle, SchedulerJobInstanceHandle instanceHandle)
-  throws LensException;
+    throws LensException;
 
   /**
    * Instance details for an instance.

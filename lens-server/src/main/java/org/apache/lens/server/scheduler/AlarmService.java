@@ -76,9 +76,9 @@ public class AlarmService extends AbstractService implements LensService {
 
   @Override
   public HealthStatus getHealthStatus() {
-    return isHealthy ?
-        new HealthStatus(isHealthy, "Alarm service is healthy.") :
-        new HealthStatus(isHealthy, healthCause);
+    return isHealthy
+           ? new HealthStatus(isHealthy, "Alarm service is healthy.")
+           : new HealthStatus(isHealthy, healthCause);
   }
 
   public synchronized void init(HiveConf hiveConf) {

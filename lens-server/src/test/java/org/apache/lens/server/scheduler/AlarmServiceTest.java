@@ -56,15 +56,19 @@ public class AlarmServiceTest {
 
   private static List<SchedulerAlarmEvent> events = new LinkedList<>();
   private static volatile int counter = 0;
-  private final LensEventListener<SchedulerAlarmEvent> alarmEventListener = new LensEventListener<SchedulerAlarmEvent>() {
-
-    @Override
-    public void onEvent(SchedulerAlarmEvent event) {
-      events.add(event);
-    }
-  };
+  private final LensEventListener<SchedulerAlarmEvent> alarmEventListener;
   private AlarmService alarmService;
   private EventServiceImpl eventService;
+
+  {
+    alarmEventListener = new LensEventListener<SchedulerAlarmEvent>() {
+
+      @Override
+      public void onEvent(SchedulerAlarmEvent event) {
+        events.add(event);
+      }
+    };
+  }
 
   @BeforeMethod
   public void initializeEventsList() {

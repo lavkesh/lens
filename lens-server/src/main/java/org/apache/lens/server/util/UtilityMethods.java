@@ -109,7 +109,7 @@ public final class UtilityMethods {
    * @throws SQLException the SQL exception
    */
   public static String[] queryDatabase(DataSource ds, String querySql, final boolean allowNull, Object... args)
-  throws SQLException {
+    throws SQLException {
     QueryRunner runner = new QueryRunner(ds);
     return runner.query(querySql, new ResultSetHandler<String[]>() {
       @Override
