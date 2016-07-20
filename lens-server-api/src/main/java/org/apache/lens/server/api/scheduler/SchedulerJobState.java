@@ -45,25 +45,25 @@ public class SchedulerJobState {
   }
 
   public SchedulerJobState nextTransition(EVENT event) throws InvalidStateTransitionException {
-    STATE currentState = STATE.valueOf(currentStatus.name());
-    STATE newState = currentState.nextTransition(event);
-    return new SchedulerJobState(SchedulerJobStatus.valueOf(newState.name()));
+    JobState currentJobState = JobState.valueOf(currentStatus.name());
+    JobState newJobState = currentJobState.nextTransition(event);
+    return new SchedulerJobState(SchedulerJobStatus.valueOf(newJobState.name()));
   }
 
-  private enum STATE implements StateMachine<STATE, EVENT> {
+  private enum JobState implements StateMachine<JobState, EVENT> {
     // repeating same operation will return the same state to ensure idempotent behavior.
     NEW {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUBMIT:
           return this;
         case ON_SCHEDULE:
-          return STATE.SCHEDULED;
+          return JobState.SCHEDULED;
         case ON_EXPIRE:
-          return STATE.EXPIRED;
+          return JobState.EXPIRED;
         case ON_DELETE:
-          return STATE.DELETED;
+          return JobState.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -73,16 +73,16 @@ public class SchedulerJobState {
 
     SCHEDULED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SCHEDULE:
           return this;
         case ON_SUSPEND:
-          return STATE.SUSPENDED;
+          return JobState.SUSPENDED;
         case ON_EXPIRE:
-          return STATE.EXPIRED;
+          return JobState.EXPIRED;
         case ON_DELETE:
-          return STATE.DELETED;
+          return JobState.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -92,16 +92,16 @@ public class SchedulerJobState {
 
     SUSPENDED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUSPEND:
           return this;
         case ON_RESUME:
-          return STATE.SCHEDULED;
+          return JobState.SCHEDULED;
         case ON_EXPIRE:
-          return STATE.EXPIRED;
+          return JobState.EXPIRED;
         case ON_DELETE:
-          return STATE.DELETED;
+          return JobState.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -111,12 +111,12 @@ public class SchedulerJobState {
 
     EXPIRED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_EXPIRE:
           return this;
         case ON_DELETE:
-          return STATE.DELETED;
+          return JobState.DELETED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -126,7 +126,7 @@ public class SchedulerJobState {
 
     DELETED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_DELETE:
           return this;

@@ -47,6 +47,7 @@ public class SchedulerDAOTest {
 
   SchedulerDAO schedulerDAO;
   Map<SchedulerJobInstanceHandle, SchedulerJobInstanceInfo> instances = new HashMap<>();
+  SchedulerJobHandle jobHandle = null;
 
   @BeforeClass
   public void setup() throws Exception {
@@ -101,8 +102,9 @@ public class SchedulerDAOTest {
   public void testStoreJob() throws Exception {
     XJob job = getTestJob();
     long currentTime = System.currentTimeMillis();
-    SchedulerJobInfo info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job,
-        "lens", SchedulerJobStatus.NEW, currentTime, currentTime);
+    jobHandle = new SchedulerJobHandle(UUID.randomUUID());
+    SchedulerJobInfo info = new SchedulerJobInfo(jobHandle, job, "lens", SchedulerJobStatus.NEW, currentTime,
+        currentTime);
     // Store the job
     schedulerDAO.storeJob(info);
     // Retrive the stored job
@@ -110,10 +112,9 @@ public class SchedulerDAOTest {
     Assert.assertEquals(job, outJob);
   }
 
-  @Test
+  @Test(dependsOnMethods = { "testStoreJob" })
   public void testStoreInstance() throws Exception {
     long currentTime = System.currentTimeMillis();
-    SchedulerJobHandle jobHandle = new SchedulerJobHandle(UUID.randomUUID());
     SchedulerJobInstanceHandle instanceHandle = new SchedulerJobInstanceHandle(UUID.randomUUID());
     SchedulerJobInstanceInfo firstInstance = new SchedulerJobInstanceInfo(instanceHandle, jobHandle, currentTime,
         new ArrayList<SchedulerJobInstanceRun>());
@@ -153,10 +154,7 @@ public class SchedulerDAOTest {
   public void testUpdateJob() throws Exception {
     // Get all the stored jobs.
     // update one and check if it successful.
-    List<SchedulerJobHandle> jobHandles = schedulerDAO.getJobs(null, null, null, null);
-    Assert.assertEquals(jobHandles.size() > 0, true);
-
-    SchedulerJobInfo jobInfo = schedulerDAO.getSchedulerJobInfo(jobHandles.get(0));
+    SchedulerJobInfo jobInfo = schedulerDAO.getSchedulerJobInfo(jobHandle);
     XJob newJob = getTestJob();
     jobInfo.setJob(newJob);
     schedulerDAO.updateJob(jobInfo);
@@ -164,7 +162,7 @@ public class SchedulerDAOTest {
     XJob storedJob = schedulerDAO.getJob(jobInfo.getId());
     Assert.assertEquals(storedJob, newJob);
 
-    // Change State
+    // Change JobInstanceState
     jobInfo.setState(new SchedulerJobState(jobInfo.getState()).nextTransition(SchedulerJobState.EVENT.ON_SCHEDULE)
         .getCurrentStatus());
     schedulerDAO.updateJobState(jobInfo);

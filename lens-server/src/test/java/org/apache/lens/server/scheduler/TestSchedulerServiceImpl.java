@@ -30,7 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import org.powermock.api.mockito.PowerMockito;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import lombok.extern.slf4j.Slf4j;
@@ -41,14 +41,14 @@ public class TestSchedulerServiceImpl {
 
   SchedulerServiceImpl scheduler;
   EventServiceImpl eventService;
+  LensSessionHandle sessionHandle = null;
 
-  @BeforeClass
+  @BeforeMethod
   public void setup() throws Exception {
     System.setProperty(LensConfConstants.CONFIG_LOCATION, "target/test-classes/");
-    LensServices.get().init(LensServerConf.getHiveConf());
-    LensServices.get().start();
-    scheduler = LensServices.get().getService(SchedulerService.NAME);
-    eventService = LensServices.get().getService(EventServiceImpl.NAME);
+  }
+
+  private void setupQueryService() throws Exception {
     QueryExecutionService queryExecutionService = PowerMockito.mock(QueryExecutionService.class);
     scheduler.setQueryService(queryExecutionService);
     PowerMockito.when(scheduler.getQueryService()
@@ -58,7 +58,6 @@ public class TestSchedulerServiceImpl {
         .thenReturn(new QueryHandle(UUID.randomUUID()));
     PowerMockito.when(scheduler.getQueryService().cancelQuery(any(LensSessionHandle.class), any(QueryHandle.class)))
         .thenReturn(true);
-
     scheduler.getSchedulerEventListener().setQueryService(queryExecutionService);
   }
 
@@ -79,11 +78,15 @@ public class TestSchedulerServiceImpl {
 
   @Test
   public void testScheduler() throws Exception {
-    LensSessionHandle sessionHandle = ((QueryExecutionServiceImpl) LensServices.get()
-        .getService(QueryExecutionService.NAME)).openSession("test", "test", new HashMap<String, String>(), false);
+    LensServices.get().init(LensServerConf.getHiveConf());
+    LensServices.get().start();
+    scheduler = LensServices.get().getService(SchedulerService.NAME);
+    eventService = LensServices.get().getService(EventServiceImpl.NAME);
+    setupQueryService();
+    sessionHandle = ((QueryExecutionServiceImpl) LensServices.get().getService(QueryExecutionService.NAME))
+        .openSession("someuser", "test", new HashMap<String, String>(), false);
     long currentTime = System.currentTimeMillis();
     XJob job = getTestJob("0/5 * * * * ?", currentTime, currentTime + 15000);
-    // job instance has 5 second frequency for 15 second.
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     Assert.assertNotNull(jobHandle);
     Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle).getCurrentStatus(),
@@ -106,12 +109,10 @@ public class TestSchedulerServiceImpl {
     Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
   }
 
-  @Test
+  @Test(dependsOnMethods = { "testScheduler" })
   public void testSuspendResume() throws Exception {
-    LensSessionHandle sessionHandle = ((QueryExecutionServiceImpl) LensServices.get()
-        .getService(QueryExecutionService.NAME)).openSession("test", "test", new HashMap<String, String>(), false);
     long currentTime = System.currentTimeMillis();
-    XJob job = getTestJob("0/5 * * * * ?", currentTime, currentTime + 180000);
+    XJob job = getTestJob("0/10 * * * * ?", currentTime, currentTime + 180000);
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     Assert.assertNotNull(jobHandle);
     Assert.assertTrue(scheduler.suspendJob(sessionHandle, jobHandle));
@@ -126,16 +127,14 @@ public class TestSchedulerServiceImpl {
         SchedulerJobStatus.EXPIRED);
   }
 
-  @Test
+  @Test(dependsOnMethods = { "testSuspendResume" })
   public void testRerunInstance() throws Exception {
-    LensSessionHandle sessionHandle = ((QueryExecutionServiceImpl) LensServices.get()
-        .getService(QueryExecutionService.NAME)).openSession("test", "test", new HashMap<String, String>(), false);
     long currentTime = System.currentTimeMillis();
 
-    XJob job = getTestJob("0/30 * * * * ?", currentTime, currentTime + 180000);
+    XJob job = getTestJob("0/10 * * * * ?", currentTime, currentTime + 180000);
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     // Wait for some instances.
-    Thread.sleep(30000);
+    Thread.sleep(15000);
     List<SchedulerJobInstanceInfo> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
     // Mark fail
     eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.FAILED));
@@ -148,7 +147,7 @@ public class TestSchedulerServiceImpl {
 
     // Rerun
     Assert.assertTrue(scheduler.rerunInstance(sessionHandle, instanceHandleList.get(0).getId()));
-    Thread.sleep(3000);
+    Thread.sleep(5000);
     eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.SUCCESSFUL));
     Thread.sleep(1000);
     info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
@@ -156,12 +155,13 @@ public class TestSchedulerServiceImpl {
     Assert.assertEquals(info.getInstanceRunList().size(), 2);
     Assert.assertEquals(info.getInstanceRunList().get(1).getResultPath(), "/tmp/query1/result");
     Assert.assertEquals(info.getInstanceRunList().get(1).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
+    Assert.assertTrue(scheduler.expireJob(sessionHandle, jobHandle));
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle).getCurrentStatus(),
+        SchedulerJobStatus.EXPIRED);
   }
 
-  @Test
-  public void killRunningInstance() throws Exception {
-    LensSessionHandle sessionHandle = ((QueryExecutionServiceImpl) LensServices.get()
-        .getService(QueryExecutionService.NAME)).openSession("test", "test", new HashMap<String, String>(), false);
+  @Test(dependsOnMethods = { "testRerunInstance" })
+  public void testKillRunningInstance() throws Exception {
     long currentTime = System.currentTimeMillis();
 
     XJob job = getTestJob("0/5 * * * * ?", currentTime, currentTime + 180000);
@@ -180,6 +180,9 @@ public class TestSchedulerServiceImpl {
     Thread.sleep(2000);
     info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.KILLED);
+    Assert.assertTrue(scheduler.expireJob(sessionHandle, jobHandle));
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle).getCurrentStatus(),
+        SchedulerJobStatus.EXPIRED);
   }
 
   private XTrigger getTestTrigger(String cron) {

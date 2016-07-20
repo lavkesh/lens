@@ -20,9 +20,6 @@ import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
 import org.apache.lens.server.scheduler.util.UtilityMethods;
-import org.apache.lens.server.session.LensSessionImpl;
-
-import org.apache.hive.service.cli.HiveSQLException;
 
 import org.joda.time.DateTime;
 
@@ -91,8 +88,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
     SchedulerJobInstanceInfo instance = null;
     SchedulerJobInstanceRun run = null;
     // Session needs to be closed after the launch.
-    try (LensSessionImpl session = ((QueryExecutionServiceImpl) LensServices.get()
-        .getService(QueryExecutionServiceImpl.NAME)).getSession(sessionHandle)) {
+    try {
       long scheduledTimeMillis = scheduledTime.getMillis();
       String query = job.getExecution().getQuery().getQuery();
       long currentTime = System.currentTimeMillis();
@@ -140,7 +136,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
           .getCurrentStatus());
       run.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstanceRun(run);
-    } catch (LensException | HiveSQLException e) {
+    } catch (LensException e) {
       log.error(
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
@@ -152,6 +148,13 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
         schedulerDAO.updateJobInstanceRun(run);
       } catch (InvalidStateTransitionException e1) {
         log.error("Can't make transition for instance " + instance.getId() + " of job " + instance.getJobId(), e);
+      }
+    } finally {
+      try {
+        ((QueryExecutionServiceImpl) LensServices.get().getService(QueryExecutionServiceImpl.NAME))
+            .closeSession(sessionHandle);
+      } catch (LensException e) {
+        log.error("Error closing session ", e);
       }
     }
   }

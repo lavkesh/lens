@@ -45,31 +45,31 @@ public class SchedulerJobInstanceState {
   }
 
   public SchedulerJobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
-    STATE currentState = STATE.valueOf(currentStatus.name());
-    STATE newState = currentState.nextTransition(event);
-    return new SchedulerJobInstanceState(SchedulerJobInstanceStatus.valueOf(newState.name()));
+    JobInstanceState currentJobInstanceState = JobInstanceState.valueOf(currentStatus.name());
+    JobInstanceState newJobInstanceState = currentJobInstanceState.nextTransition(event);
+    return new SchedulerJobInstanceState(SchedulerJobInstanceStatus.valueOf(newJobInstanceState.name()));
   }
 
-  public enum STATE implements StateMachine<STATE, EVENT> {
+  public enum JobInstanceState implements StateMachine<JobInstanceState, EVENT> {
     // repeating same operation will return the same state to ensure idempotent behavior.
     WAITING {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_CREATION:
           return this;
         case ON_CONDITIONS_MET:
-          return STATE.LAUNCHED;
+          return JobInstanceState.LAUNCHED;
         case ON_TIME_OUT:
-          return STATE.TIMED_OUT;
+          return JobInstanceState.TIMED_OUT;
         case ON_RUN:
-          return STATE.RUNNING;
+          return JobInstanceState.RUNNING;
         case ON_SUCCESS:
-          return STATE.SUCCEEDED;
+          return JobInstanceState.SUCCEEDED;
         case ON_FAILURE:
-          return STATE.FAILED;
+          return JobInstanceState.FAILED;
         case ON_KILL:
-          return STATE.KILLED;
+          return JobInstanceState.KILLED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -79,18 +79,18 @@ public class SchedulerJobInstanceState {
 
     LAUNCHED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_CONDITIONS_MET:
           return this;
         case ON_RUN:
-          return STATE.RUNNING;
+          return JobInstanceState.RUNNING;
         case ON_SUCCESS:
-          return STATE.SUCCEEDED;
+          return JobInstanceState.SUCCEEDED;
         case ON_FAILURE:
-          return STATE.FAILED;
+          return JobInstanceState.FAILED;
         case ON_KILL:
-          return STATE.KILLED;
+          return JobInstanceState.KILLED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -100,16 +100,16 @@ public class SchedulerJobInstanceState {
 
     RUNNING {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_RUN:
           return this;
         case ON_SUCCESS:
-          return STATE.SUCCEEDED;
+          return JobInstanceState.SUCCEEDED;
         case ON_FAILURE:
-          return STATE.FAILED;
+          return JobInstanceState.FAILED;
         case ON_KILL:
-          return STATE.KILLED;
+          return JobInstanceState.KILLED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -119,12 +119,12 @@ public class SchedulerJobInstanceState {
 
     FAILED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_FAILURE:
           return this;
         case ON_RERUN:
-          return STATE.LAUNCHED;
+          return JobInstanceState.LAUNCHED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -134,12 +134,12 @@ public class SchedulerJobInstanceState {
 
     SUCCEEDED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUCCESS:
           return this;
         case ON_RERUN:
-          return STATE.LAUNCHED;
+          return JobInstanceState.LAUNCHED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -149,12 +149,12 @@ public class SchedulerJobInstanceState {
 
     TIMED_OUT {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_TIME_OUT:
           return this;
         case ON_RERUN:
-          return STATE.WAITING;
+          return JobInstanceState.WAITING;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());
@@ -164,12 +164,12 @@ public class SchedulerJobInstanceState {
 
     KILLED {
       @Override
-      public STATE nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_KILL:
           return this;
         case ON_RERUN:
-          return STATE.LAUNCHED;
+          return JobInstanceState.LAUNCHED;
         default:
           throw new InvalidStateTransitionException(
               "Event: " + event.name() + " is not a valid event for state: " + this.name());

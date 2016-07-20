@@ -248,7 +248,7 @@ public class SchedulerDAO {
    * Gets all jobs which match the filter requirements.
    *
    * @param username  : User name of the job
-   * @param state     : State of the job
+   * @param state     : JobInstanceState of the job
    * @param startTime : Created on should be greater than this start time.
    * @param endTime   : Created on should be less than the end time.
    * @return List of Job handles

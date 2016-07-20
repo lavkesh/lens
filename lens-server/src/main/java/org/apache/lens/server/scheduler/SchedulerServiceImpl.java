@@ -115,7 +115,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     SchedulerJobHandle handle = UtilityMethods.generateSchedulerJobHandle();
     long createdOn = System.currentTimeMillis();
     long modifiedOn = createdOn;
-    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getUserName(), SchedulerJobStatus.NEW, createdOn,
+    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getLoggedInUser(), SchedulerJobStatus.NEW, createdOn,
         modifiedOn);
     if (schedulerDAO.storeJob(info) == 1) {
       return handle;

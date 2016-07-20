@@ -89,9 +89,11 @@ public class AlarmService extends AbstractService implements LensService {
       isHealthy = false;
       healthCause = "Failed to initialize the Quartz Scheduler for AlarmService.";
       log.error(healthCause, e);
+      throw new IllegalStateException("Could not initialize the Alarm Service", e);
     }
   }
 
+  @Override
   public synchronized void start() {
     try {
       scheduler.start();
@@ -100,13 +102,14 @@ public class AlarmService extends AbstractService implements LensService {
       isHealthy = false;
       healthCause = "Failed to start the Quartz Scheduler for AlarmService.";
       log.error(healthCause, e);
+      throw new IllegalStateException("Could not start the Alarm service", e);
     }
   }
 
   @Override
   public synchronized void stop() {
     try {
-      scheduler.shutdown();
+      scheduler.standby();
       log.info("Alarm Service stopped successfully.");
     } catch (SchedulerException e) {
       log.error("Failed to shut down the Quartz Scheduler for AlarmService.", e);
