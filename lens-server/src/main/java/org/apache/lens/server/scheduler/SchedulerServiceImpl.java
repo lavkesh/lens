@@ -94,6 +94,11 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     }
   }
 
+  @Override
+  public synchronized void start() {
+    super.start();
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -115,8 +120,8 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     SchedulerJobHandle handle = UtilityMethods.generateSchedulerJobHandle();
     long createdOn = System.currentTimeMillis();
     long modifiedOn = createdOn;
-    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getLoggedInUser(), SchedulerJobStatus.NEW, createdOn,
-        modifiedOn);
+    SchedulerJobInfo info = new SchedulerJobInfo(handle, job, session.getLoggedInUser(), SchedulerJobStatus.NEW,
+        createdOn, modifiedOn);
     if (schedulerDAO.storeJob(info) == 1) {
       return handle;
     } else {

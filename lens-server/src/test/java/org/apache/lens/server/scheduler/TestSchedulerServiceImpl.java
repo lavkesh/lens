@@ -76,7 +76,7 @@ public class TestSchedulerServiceImpl {
     return queryEnded;
   }
 
-  @Test
+  @Test(priority=1)
   public void testScheduler() throws Exception {
     LensServices.get().init(LensServerConf.getHiveConf());
     LensServices.get().start();
@@ -109,7 +109,7 @@ public class TestSchedulerServiceImpl {
     Assert.assertEquals(info.getInstanceRunList().get(0).getState(), SchedulerJobInstanceStatus.SUCCEEDED);
   }
 
-  @Test(dependsOnMethods = { "testScheduler" })
+  @Test(priority=2)
   public void testSuspendResume() throws Exception {
     long currentTime = System.currentTimeMillis();
     XJob job = getTestJob("0/10 * * * * ?", currentTime, currentTime + 180000);
@@ -127,7 +127,7 @@ public class TestSchedulerServiceImpl {
         SchedulerJobStatus.EXPIRED);
   }
 
-  @Test(dependsOnMethods = { "testSuspendResume" })
+  @Test(priority=2)
   public void testRerunInstance() throws Exception {
     long currentTime = System.currentTimeMillis();
 
@@ -160,7 +160,7 @@ public class TestSchedulerServiceImpl {
         SchedulerJobStatus.EXPIRED);
   }
 
-  @Test(dependsOnMethods = { "testRerunInstance" })
+  @Test(priority=2)
   public void testKillRunningInstance() throws Exception {
     long currentTime = System.currentTimeMillis();
 
