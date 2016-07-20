@@ -44,17 +44,17 @@ public class SchedulerJobState {
     this.currentStatus = INITIAL_STATUS;
   }
 
-  public SchedulerJobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+  public SchedulerJobState nextTransition(Event event) throws InvalidStateTransitionException {
     JobState currentJobState = JobState.valueOf(currentStatus.name());
     JobState newJobState = currentJobState.nextTransition(event);
     return new SchedulerJobState(SchedulerJobStatus.valueOf(newJobState.name()));
   }
 
-  private enum JobState implements StateMachine<JobState, EVENT> {
+  private enum JobState implements StateMachine<JobState, Event> {
     // repeating same operation will return the same state to ensure idempotent behavior.
     NEW {
       @Override
-      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUBMIT:
           return this;
@@ -73,7 +73,7 @@ public class SchedulerJobState {
 
     SCHEDULED {
       @Override
-      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SCHEDULE:
           return this;
@@ -92,7 +92,7 @@ public class SchedulerJobState {
 
     SUSPENDED {
       @Override
-      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUSPEND:
           return this;
@@ -111,7 +111,7 @@ public class SchedulerJobState {
 
     EXPIRED {
       @Override
-      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_EXPIRE:
           return this;
@@ -126,7 +126,7 @@ public class SchedulerJobState {
 
     DELETED {
       @Override
-      public JobState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_DELETE:
           return this;
@@ -141,7 +141,7 @@ public class SchedulerJobState {
   /**
    * All events(actions) which can happen on a Scheduler Job.
    */
-  public enum EVENT {
+  public enum Event {
     ON_SUBMIT,
     ON_SCHEDULE,
     ON_SUSPEND,

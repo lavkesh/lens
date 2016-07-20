@@ -30,7 +30,7 @@ import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.LensServerConf;
 import org.apache.lens.server.api.LensConfConstants;
 import org.apache.lens.server.api.scheduler.SchedulerJobState;
-import org.apache.lens.server.scheduler.util.UtilityMethods;
+import org.apache.lens.server.util.UtilityMethods;
 
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.hadoop.conf.Configuration;
@@ -53,7 +53,7 @@ public class SchedulerDAOTest {
   public void setup() throws Exception {
     System.setProperty(LensConfConstants.CONFIG_LOCATION, "target/test-classes/");
     Configuration conf = LensServerConf.getHiveConf();
-    QueryRunner runner = new QueryRunner(UtilityMethods.getDataSourceFromConf(conf));
+    QueryRunner runner = new QueryRunner(UtilityMethods.getDataSourceFromConfForScheduler(conf));
     // Cleanup all tables
     runner.update("DROP TABLE IF EXISTS job_table");
     runner.update("DROP TABLE IF EXISTS job_instance_table");
@@ -98,7 +98,7 @@ public class SchedulerDAOTest {
     return job;
   }
 
-  @Test
+  @Test(priority = 1)
   public void testStoreJob() throws Exception {
     XJob job = getTestJob();
     long currentTime = System.currentTimeMillis();
@@ -112,7 +112,7 @@ public class SchedulerDAOTest {
     Assert.assertEquals(job, outJob);
   }
 
-  @Test(dependsOnMethods = { "testStoreJob" })
+  @Test(priority = 2)
   public void testStoreInstance() throws Exception {
     long currentTime = System.currentTimeMillis();
     SchedulerJobInstanceHandle instanceHandle = new SchedulerJobInstanceHandle(UUID.randomUUID());
@@ -150,7 +150,7 @@ public class SchedulerDAOTest {
     Assert.assertEquals(instances.get(handleList.get(1).getId()), instance2);
   }
 
-  @Test(dependsOnMethods = { "testStoreJob" })
+  @Test(priority = 2)
   public void testUpdateJob() throws Exception {
     // Get all the stored jobs.
     // update one and check if it successful.
@@ -163,24 +163,25 @@ public class SchedulerDAOTest {
     Assert.assertEquals(storedJob, newJob);
 
     // Change JobInstanceState
-    jobInfo.setState(new SchedulerJobState(jobInfo.getState()).nextTransition(SchedulerJobState.EVENT.ON_SCHEDULE)
-        .getCurrentStatus());
-    schedulerDAO.updateJobState(jobInfo);
-    Assert.assertEquals(schedulerDAO.getJobState(jobInfo.getId()).getCurrentStatus(), SchedulerJobStatus.SCHEDULED);
+    jobInfo.setJobStatus(
+        new SchedulerJobState(jobInfo.getJobStatus()).nextTransition(SchedulerJobState.Event.ON_SCHEDULE)
+            .getCurrentStatus());
+    schedulerDAO.updateJobStatus(jobInfo);
+    Assert.assertEquals(schedulerDAO.getJobStatus(jobInfo.getId()), SchedulerJobStatus.SCHEDULED);
   }
 
-  @Test(dependsOnMethods = { "testStoreInstance" })
+  @Test(priority = 3)
   public void testUpdateJobInstance() {
     SchedulerJobInstanceHandle handle = instances.keySet().iterator().next();
     SchedulerJobInstanceInfo info = instances.get(handle);
     SchedulerJobInstanceRun run = info.getInstanceRunList().get(0);
-    run.setState(SchedulerJobInstanceStatus.LAUNCHED);
+    run.setInstanceStatus(SchedulerJobInstanceStatus.LAUNCHED);
     schedulerDAO.updateJobInstanceRun(run);
     // Get the instance
     Assert.assertEquals(schedulerDAO.getSchedulerJobInstanceInfo(handle), info);
   }
 
-  @Test(dependsOnMethods = { "testUpdateJob" })
+  @Test(priority = 3)
   public void testSearchStoreJob() throws Exception {
     // Store more jobs with the one user and search
     XJob job = getTestJob();

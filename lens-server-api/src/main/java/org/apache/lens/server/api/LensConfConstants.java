@@ -1117,7 +1117,5 @@ public final class LensConfConstants {
   /**
    * Query current time for the scheduled query.
    */
-  public static final String QUERY_CURRENT_TIME_IN_MILLIS = QUERY_PFX + "current.time";
-
-
+  public static final String QUERY_CURRENT_TIME_IN_MILLIS = QUERY_PFX + "current.time.millis";
 }

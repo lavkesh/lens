@@ -44,17 +44,17 @@ public class SchedulerJobInstanceState {
     this.currentStatus = INITIAL_STATUS;
   }
 
-  public SchedulerJobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+  public SchedulerJobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
     JobInstanceState currentJobInstanceState = JobInstanceState.valueOf(currentStatus.name());
     JobInstanceState newJobInstanceState = currentJobInstanceState.nextTransition(event);
     return new SchedulerJobInstanceState(SchedulerJobInstanceStatus.valueOf(newJobInstanceState.name()));
   }
 
-  public enum JobInstanceState implements StateMachine<JobInstanceState, EVENT> {
+  public enum JobInstanceState implements StateMachine<JobInstanceState, Event> {
     // repeating same operation will return the same state to ensure idempotent behavior.
     WAITING {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_CREATION:
           return this;
@@ -79,7 +79,7 @@ public class SchedulerJobInstanceState {
 
     LAUNCHED {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_CONDITIONS_MET:
           return this;
@@ -100,7 +100,7 @@ public class SchedulerJobInstanceState {
 
     RUNNING {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_RUN:
           return this;
@@ -119,7 +119,7 @@ public class SchedulerJobInstanceState {
 
     FAILED {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_FAILURE:
           return this;
@@ -134,7 +134,7 @@ public class SchedulerJobInstanceState {
 
     SUCCEEDED {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_SUCCESS:
           return this;
@@ -149,7 +149,7 @@ public class SchedulerJobInstanceState {
 
     TIMED_OUT {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_TIME_OUT:
           return this;
@@ -164,7 +164,7 @@ public class SchedulerJobInstanceState {
 
     KILLED {
       @Override
-      public JobInstanceState nextTransition(EVENT event) throws InvalidStateTransitionException {
+      public JobInstanceState nextTransition(Event event) throws InvalidStateTransitionException {
         switch (event) {
         case ON_KILL:
           return this;
@@ -181,7 +181,7 @@ public class SchedulerJobInstanceState {
   /**
    * All events(actions) which can happen on an instance of <code>SchedulerJob</code>.
    */
-  public enum EVENT {
+  public enum Event {
     ON_CREATION, // an instance is first considered by the scheduler.
     ON_TIME_OUT,
     ON_CONDITIONS_MET,

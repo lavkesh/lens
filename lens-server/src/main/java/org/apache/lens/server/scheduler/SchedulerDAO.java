@@ -32,8 +32,7 @@ import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.api.LensConfConstants;
 import org.apache.lens.server.api.error.LensException;
-import org.apache.lens.server.api.scheduler.SchedulerJobState;
-import org.apache.lens.server.scheduler.util.UtilityMethods;
+import org.apache.lens.server.util.UtilityMethods;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.dbutils.QueryRunner;
@@ -56,7 +55,7 @@ public class SchedulerDAO {
       Class dbStoreClass = Class
           .forName(conf.get(LensConfConstants.SCHEDULER_STORE_CLASS, SchedulerHsqlDBStore.class.getName()));
       this.store = (SchedulerDBStore) dbStoreClass.newInstance();
-      this.store.init(UtilityMethods.getDataSourceFromConf(conf));
+      this.store.init(UtilityMethods.getDataSourceFromConfForScheduler(conf));
       this.store.createJobTable();
       this.store.createJobInstanceTable();
       this.store.createJobInstanceRunTable();
@@ -136,11 +135,11 @@ public class SchedulerDAO {
    * Gets the Job status
    *
    * @param id : Job handle id.
-   * @return SchedulerJobState of the job.
+   * @return SchedulerJobStatus of the job.
    */
-  public SchedulerJobState getJobState(SchedulerJobHandle id) {
+  public SchedulerJobStatus getJobStatus(SchedulerJobHandle id) {
     try {
-      return store.getJobState(id.getHandleIdString());
+      return store.getJobStatus(id.getHandleIdString());
     } catch (SQLException e) {
       log.error("Error while getting the job status for " + id.getHandleIdString(), e);
       return null;
@@ -168,9 +167,9 @@ public class SchedulerDAO {
    * @param info: Updated info objects
    * @return number of rows updated.
    */
-  public int updateJobState(SchedulerJobInfo info) {
+  public int updateJobStatus(SchedulerJobInfo info) {
     try {
-      return store.updateJobState(info.getId().getHandleIdString(), info.getState().name(), info.getModifiedOn());
+      return store.updateJobStatus(info.getId().getHandleIdString(), info.getJobStatus().name(), info.getModifiedOn());
     } catch (SQLException e) {
       log.error("Error while updating job status for " + info.getId().getHandleIdString(), e);
       return 0;
@@ -248,14 +247,14 @@ public class SchedulerDAO {
    * Gets all jobs which match the filter requirements.
    *
    * @param username  : User name of the job
-   * @param state     : JobInstanceState of the job
+   * @param jobStatus : status of the job
    * @param startTime : Created on should be greater than this start time.
    * @param endTime   : Created on should be less than the end time.
    * @return List of Job handles
    */
-  public List<SchedulerJobHandle> getJobs(String username, SchedulerJobStatus state, Long startTime, Long endTime) {
+  public List<SchedulerJobHandle> getJobs(String username, SchedulerJobStatus jobStatus, Long startTime, Long endTime) {
     try {
-      return store.getJobs(username, state == null ? null : state.name(), startTime, endTime);
+      return store.getJobs(username, jobStatus == null ? null : jobStatus.name(), startTime, endTime);
     } catch (SQLException e) {
       log.error("Error while getting jobs ", e);
       return null;
@@ -285,7 +284,7 @@ public class SchedulerDAO {
     protected static final String COLUMN_RUN_ID = "runid";
     protected static final String COLUMN_JOB = "job";
     protected static final String COLUMN_USER = "username";
-    protected static final String COLUMN_STATE = "state";
+    protected static final String COLUMN_STATUS = "status";
     protected static final String COLUMN_CREATED_ON = "createdon";
     protected static final String COLUMN_SCHEDULE_TIME = "schedultime";
     protected static final String COLUMN_MODIFIED_ON = "modifiedon";
@@ -357,7 +356,7 @@ public class SchedulerDAO {
       String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?)";
       JAXBElement<XJob> xmlJob = jobFactory.createJob(jobInfo.getJob());
       return runner.update(insertSQL, jobInfo.getId().toString(), ToXMLString.toString(xmlJob), jobInfo.getUserName(),
-          jobInfo.getState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
+          jobInfo.getJobStatus().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
     }
 
     /**
@@ -380,7 +379,7 @@ public class SchedulerDAO {
           instanceRun.getSessionHandle().toString(), instanceRun.getStartTime(), instanceRun.getEndTime(),
           instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getState().name());
+          instanceRun.getInstanceStatus().name());
     }
 
     /**
@@ -400,11 +399,11 @@ public class SchedulerDAO {
         SchedulerJobHandle id = SchedulerJobHandle.fromString((String) jobInfo[0]);
         XJob xJob = ToXMLString.valueOf((String) jobInfo[1], ObjectFactory.class);
         String userName = (String) jobInfo[2];
-        String state = (String) jobInfo[3];
+        String status = (String) jobInfo[3];
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
-        SchedulerJobStatus status = SchedulerJobStatus.valueOf(state);
-        return new SchedulerJobInfo(id, xJob, userName, status, createdOn, modifiedOn);
+        SchedulerJobStatus jobStatus = SchedulerJobStatus.valueOf(status);
+        return new SchedulerJobInfo(id, xJob, userName, jobStatus, createdOn, modifiedOn);
       }
     }
 
@@ -447,16 +446,16 @@ public class SchedulerDAO {
      * Gets the job status
      *
      * @param id
-     * @return SchedulerJobState
+     * @return SchedulerJobStatus
      * @throws SQLException
      */
-    public SchedulerJobState getJobState(String id) throws SQLException {
-      String fetchSQL = "SELECT " + COLUMN_STATE + " FROM " + JOB_TABLE + " WHERE " + COLUMN_ID + "=?";
+    public SchedulerJobStatus getJobStatus(String id) throws SQLException {
+      String fetchSQL = "SELECT " + COLUMN_STATUS + " FROM " + JOB_TABLE + " WHERE " + COLUMN_ID + "=?";
       List<Object[]> result = runner.query(fetchSQL, multipleRowsHandler, id);
       if (result.size() == 0) {
         return null;
       } else {
-        return new SchedulerJobState(SchedulerJobStatus.valueOf((String) result.get(0)[0]));
+        return SchedulerJobStatus.valueOf((String) result.get(0)[0]);
       }
     }
 
@@ -464,20 +463,20 @@ public class SchedulerDAO {
      * Gets all the jobs which match the filter requirements.
      *
      * @param username
-     * @param state
+     * @param status
      * @param starttime
      * @param endtime
      * @return the list of job handles.
      * @throws SQLException
      */
-    public List<SchedulerJobHandle> getJobs(String username, String state, Long starttime, Long endtime)
+    public List<SchedulerJobHandle> getJobs(String username, String status, Long starttime, Long endtime)
     throws SQLException {
       String whereClause = "";
       if (username != null && !username.isEmpty()) {
         whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_USER + " = '" + username + "'";
       }
-      if (state != null && !state.isEmpty()) {
-        whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_STATE + " = '" + state + "'";
+      if (status != null && !status.isEmpty()) {
+        whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_STATUS + " = '" + status + "'";
       }
       if (starttime != null && starttime > 0) {
         whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_CREATED_ON + " >= " + starttime;
@@ -516,16 +515,16 @@ public class SchedulerDAO {
      * Updates the job status into the job table
      *
      * @param id
-     * @param state
+     * @param status
      * @param modifiedOn
      * @return number of rows updated.
      * @throws SQLException
      */
-    public int updateJobState(String id, String state, long modifiedOn) throws SQLException {
+    public int updateJobStatus(String id, String status, long modifiedOn) throws SQLException {
       String updateSQL =
-          "UPDATE " + JOB_TABLE + " SET " + COLUMN_STATE + "=?, " + COLUMN_MODIFIED_ON + "=? " + " WHERE " + COLUMN_ID
+          "UPDATE " + JOB_TABLE + " SET " + COLUMN_STATUS + "=?, " + COLUMN_MODIFIED_ON + "=? " + " WHERE " + COLUMN_ID
               + "=?";
-      return runner.update(updateSQL, state, modifiedOn, id);
+      return runner.update(updateSQL, status, modifiedOn, id);
     }
 
     /**
@@ -552,7 +551,7 @@ public class SchedulerDAO {
       long createdOn = (Long) instanceInfo[2];
       // Get the Runs
       String fetchSQL = "SELECT * FROM " + JOB_INSTANCE_RUN_TABLE + " WHERE " + COLUMN_ID + "=?";
-      List<Object[]> instanceRuns = runner.query(fetchSQL, multipleRowsHandler, (String)instanceInfo[0]);
+      List<Object[]> instanceRuns = runner.query(fetchSQL, multipleRowsHandler, (String) instanceInfo[0]);
       List<SchedulerJobInstanceRun> runList = new ArrayList<>();
       for (Object[] run : instanceRuns) {
         // run[0] will contain the instanceID
@@ -566,9 +565,9 @@ public class SchedulerDAO {
         if (!queryHandleString.isEmpty()) {
           queryHandle = QueryHandle.fromString((String) run[6]);
         }
-        SchedulerJobInstanceStatus state = SchedulerJobInstanceStatus.valueOf((String) run[7]);
-        SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime,
-            endtime, resultPath, queryHandle, state);
+        SchedulerJobInstanceStatus instanceStatus = SchedulerJobInstanceStatus.valueOf((String) run[7]);
+        SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime, endtime,
+            resultPath, queryHandle, instanceStatus);
         runList.add(instanceRun);
       }
       return new SchedulerJobInstanceInfo(id, jobId, createdOn, runList);
@@ -584,12 +583,12 @@ public class SchedulerDAO {
     public int updateJobInstanceRun(SchedulerJobInstanceRun instanceRun) throws SQLException {
       String updateSQL =
           "UPDATE " + JOB_INSTANCE_RUN_TABLE + " SET " + COLUMN_END_TIME + "=?, " + COLUMN_RESULT_PATH + "=?, "
-              + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATE + "=?" + " WHERE " + COLUMN_ID + "=? AND " + COLUMN_RUN_ID
+              + COLUMN_QUERY_HANDLE + "=?, " + COLUMN_STATUS + "=?" + " WHERE " + COLUMN_ID + "=? AND " + COLUMN_RUN_ID
               + "=?";
 
       return runner.update(updateSQL, instanceRun.getEndTime(), instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getState().name(), instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId());
+          instanceRun.getInstanceStatus().name(), instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId());
     }
 
     /**
@@ -639,7 +638,7 @@ public class SchedulerDAO {
     public void createJobTable() throws SQLException {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL," + COLUMN_JOB
-              + " TEXT," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATE + " VARCHAR(20)," + COLUMN_CREATED_ON
+              + " TEXT," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATUS + " VARCHAR(20)," + COLUMN_CREATED_ON
               + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), " + " PRIMARY KEY ( "
               + COLUMN_ID + ")" + ")";
       runner.update(createSQL);
@@ -666,8 +665,8 @@ public class SchedulerDAO {
           "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_RUN_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
               + COLUMN_RUN_ID + " INT NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), " + COLUMN_START_TIME
               + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " TEXT, " + COLUMN_QUERY_HANDLE
-              + " TEXT, " + COLUMN_STATE + " VARCHAR(20), " + " PRIMARY KEY ( " + COLUMN_ID + ", " + COLUMN_RUN_ID + ")"
-              + ")";
+              + " TEXT, " + COLUMN_STATUS + " VARCHAR(20), " + " PRIMARY KEY ( " + COLUMN_ID + ", " + COLUMN_RUN_ID
+              + ")" + ")";
       runner.update(createSQL);
     }
   }
@@ -683,7 +682,7 @@ public class SchedulerDAO {
     public void createJobTable() throws SQLException {
       String createSQL =
           "CREATE TABLE IF NOT EXISTS " + JOB_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL," + COLUMN_JOB
-              + " VARCHAR(1024)," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATE + " VARCHAR(20)," + COLUMN_CREATED_ON
+              + " VARCHAR(1024)," + COLUMN_USER + " VARCHAR(255)," + COLUMN_STATUS + " VARCHAR(20)," + COLUMN_CREATED_ON
               + " BIGINT, " + COLUMN_MODIFIED_ON + " BIGINT, " + COLUMN_JOB_NAME + " VARCHAR(255), " + " PRIMARY KEY ( "
               + COLUMN_ID + ")" + ")";
       runner.update(createSQL);
@@ -710,7 +709,7 @@ public class SchedulerDAO {
           "CREATE TABLE IF NOT EXISTS " + JOB_INSTANCE_RUN_TABLE + "( " + COLUMN_ID + " VARCHAR(255) NOT NULL, "
               + COLUMN_RUN_ID + " INT NOT NULL, " + COLUMN_SESSION_HANDLE + " VARCHAR(255), " + COLUMN_START_TIME
               + " BIGINT, " + COLUMN_END_TIME + " BIGINT, " + COLUMN_RESULT_PATH + " VARCHAR(1024),"
-              + COLUMN_QUERY_HANDLE + " VARCHAR(1024), " + COLUMN_STATE + " VARCHAR(20), " + " PRIMARY KEY ( "
+              + COLUMN_QUERY_HANDLE + " VARCHAR(1024), " + COLUMN_STATUS + " VARCHAR(20), " + " PRIMARY KEY ( "
               + COLUMN_ID + ", " + COLUMN_RUN_ID + " )" + ")";
       runner.update(createSQL);
     }

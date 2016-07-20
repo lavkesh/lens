@@ -19,7 +19,7 @@ import org.apache.lens.server.api.query.QueryExecutionService;
 import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
-import org.apache.lens.server.scheduler.util.UtilityMethods;
+import org.apache.lens.server.util.UtilityMethods;
 
 import org.joda.time.DateTime;
 
@@ -91,7 +91,6 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
     try {
       long scheduledTimeMillis = scheduledTime.getMillis();
       String query = job.getExecution().getQuery().getQuery();
-      long currentTime = System.currentTimeMillis();
       List<MapType> jobConf = job.getExecution().getQuery().getConf();
       LensConf queryConf = new LensConf();
       for (MapType element : jobConf) {
@@ -110,6 +109,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
         instance = schedulerDAO.getSchedulerJobInstanceInfo(instanceHandle);
       }
       // Next run of the instance
+      long currentTime = System.currentTimeMillis();
       run = new SchedulerJobInstanceRun(instanceHandle, instance.getInstanceRunList().size() + 1, sessionHandle,
           currentTime, 0, "N/A", null, SchedulerJobInstanceStatus.WAITING);
       instance.getInstanceRunList().add(run);
@@ -129,11 +129,11 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
         return;
       }
 
-      //TODO: Handle waiting status
       QueryHandle handle = queryService.executeAsync(sessionHandle, query, queryConf, queryName);
       run.setQueryHandle(handle);
-      run.setState(new SchedulerJobInstanceState(run.getState()).nextTransition(SchedulerJobInstanceState.EVENT.ON_RUN)
-          .getCurrentStatus());
+      run.setInstanceStatus(
+          new SchedulerJobInstanceState(run.getInstanceStatus()).nextTransition(SchedulerJobInstanceState.Event.ON_RUN)
+              .getCurrentStatus());
       run.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstanceRun(run);
     } catch (LensException e) {
@@ -141,9 +141,8 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
       try {
-        run.setState(
-            new SchedulerJobInstanceState(run.getState()).nextTransition(SchedulerJobInstanceState.EVENT.ON_FAILURE)
-                .getCurrentStatus());
+        run.setInstanceStatus(new SchedulerJobInstanceState(run.getInstanceStatus())
+            .nextTransition(SchedulerJobInstanceState.Event.ON_FAILURE).getCurrentStatus());
         run.setEndTime(System.currentTimeMillis());
         schedulerDAO.updateJobInstanceRun(run);
       } catch (InvalidStateTransitionException e1) {

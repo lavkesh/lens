@@ -30,7 +30,7 @@ import org.apache.lens.server.api.error.LensException;
 /**
  * Scheduler interface.
  */
-public interface SchedulerService extends LensService, SessionValidator{
+public interface SchedulerService extends LensService, SessionValidator {
 
   /**
    * The constant name for scheduler service.
@@ -52,6 +52,7 @@ public interface SchedulerService extends LensService, SessionValidator{
    *
    * @param sessionHandle handle for the current session.
    * @param jobHandle     handle for the job to be scheduled.
+   * @return true if there is a successful schedule
    * @throws LensException the lens exception
    */
   boolean scheduleJob(LensSessionHandle sessionHandle, SchedulerJobHandle jobHandle) throws LensException;

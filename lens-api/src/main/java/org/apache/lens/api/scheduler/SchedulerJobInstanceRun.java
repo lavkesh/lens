@@ -57,6 +57,6 @@ public class SchedulerJobInstanceRun {
    * @param status status to be set.
    * @return status of this instance.
    */
-  private SchedulerJobInstanceStatus state;
+  private SchedulerJobInstanceStatus instanceStatus;
 
 }
