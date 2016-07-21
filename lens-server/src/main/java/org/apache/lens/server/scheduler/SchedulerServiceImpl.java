@@ -25,6 +25,7 @@ import org.apache.lens.api.LensConf;
 import org.apache.lens.api.LensSessionHandle;
 import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
+import org.apache.lens.cube.parse.CubeQueryConfUtil;
 import org.apache.lens.server.BaseLensService;
 import org.apache.lens.server.LensServices;
 import org.apache.lens.server.api.error.LensException;
@@ -154,6 +155,7 @@ public class SchedulerServiceImpl extends BaseLensService implements SchedulerSe
     for (MapType element : jobConf) {
       queryConf.addProperty(element.getKey(), element.getValue());
     }
+    queryConf.addProperty(CubeQueryConfUtil.FAIL_QUERY_ON_PARTIAL_DATA, false);
     queryService.estimate(LensServices.get().getLogSegregationContext().getLogSegragationId(), sessionHandle,
         job.getExecution().getQuery().getQuery(), queryConf);
     return;
