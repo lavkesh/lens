@@ -107,12 +107,12 @@ public class TestSchedulerServiceImpl {
     XJob job = getTestJob("0/5 * * * * ?", currentTime, currentTime + 15000);
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     Assert.assertNotNull(jobHandle);
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.SCHEDULED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.SCHEDULED);
     // Wait for job to finish
     Thread.sleep(30000);
     List<SchedulerJobInstanceInfo> instanceHandleList = scheduler.getSchedulerDAO().getJobInstances(jobHandle);
     Assert.assertEquals(instanceHandleList.size() >= 3, true);
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.EXPIRED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.EXPIRED);
     // SuccessFul query
     eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.SUCCESSFUL));
     // Wait, for event to get processed
@@ -122,7 +122,7 @@ public class TestSchedulerServiceImpl {
         .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
     Assert.assertEquals(info.getInstanceRunList().get(0).getResultPath(), "/tmp/query1/result");
-    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceStatus(), SchedulerJobInstanceStatus.SUCCEEDED);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceState(), SchedulerJobInstanceState.SUCCEEDED);
   }
 
   @Test(priority = 2)
@@ -132,12 +132,12 @@ public class TestSchedulerServiceImpl {
     SchedulerJobHandle jobHandle = scheduler.submitAndScheduleJob(sessionHandle, job);
     Assert.assertNotNull(jobHandle);
     Assert.assertTrue(scheduler.suspendJob(sessionHandle, jobHandle));
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.SUSPENDED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.SUSPENDED);
     Assert.assertTrue(scheduler.resumeJob(sessionHandle, jobHandle));
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.SCHEDULED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.SCHEDULED);
     Thread.sleep(10000);
     Assert.assertTrue(scheduler.expireJob(sessionHandle, jobHandle));
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.EXPIRED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.EXPIRED);
   }
 
   @Test(priority = 2)
@@ -156,7 +156,7 @@ public class TestSchedulerServiceImpl {
         .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     // First run
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
-    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceStatus(), SchedulerJobInstanceStatus.FAILED);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceState(), SchedulerJobInstanceState.FAILED);
 
     // Rerun
     Assert.assertTrue(scheduler.rerunInstance(sessionHandle, instanceHandleList.get(0).getId()));
@@ -167,9 +167,9 @@ public class TestSchedulerServiceImpl {
     // There should be 2 reruns.
     Assert.assertEquals(info.getInstanceRunList().size(), 2);
     Assert.assertEquals(info.getInstanceRunList().get(1).getResultPath(), "/tmp/query1/result");
-    Assert.assertEquals(info.getInstanceRunList().get(1).getInstanceStatus(), SchedulerJobInstanceStatus.SUCCEEDED);
+    Assert.assertEquals(info.getInstanceRunList().get(1).getInstanceState(), SchedulerJobInstanceState.SUCCEEDED);
     Assert.assertTrue(scheduler.expireJob(sessionHandle, jobHandle));
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.EXPIRED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.EXPIRED);
   }
 
   @Test(priority = 2)
@@ -186,14 +186,14 @@ public class TestSchedulerServiceImpl {
     SchedulerJobInstanceInfo info = scheduler.getSchedulerDAO()
         .getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
     Assert.assertEquals(info.getInstanceRunList().size(), 1);
-    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceStatus(), SchedulerJobInstanceStatus.RUNNING);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceState(), SchedulerJobInstanceState.RUNNING);
     // Query End event
     eventService.notifyEvent(mockQueryEnded(instanceHandleList.get(0).getId(), QueryStatus.Status.CANCELED));
     Thread.sleep(2000);
     info = scheduler.getSchedulerDAO().getSchedulerJobInstanceInfo(instanceHandleList.get(0).getId());
-    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceStatus(), SchedulerJobInstanceStatus.KILLED);
+    Assert.assertEquals(info.getInstanceRunList().get(0).getInstanceState(), SchedulerJobInstanceState.KILLED);
     Assert.assertTrue(scheduler.expireJob(sessionHandle, jobHandle));
-    Assert.assertEquals(scheduler.getSchedulerDAO().getJobStatus(jobHandle), SchedulerJobStatus.EXPIRED);
+    Assert.assertEquals(scheduler.getSchedulerDAO().getJobState(jobHandle), SchedulerJobState.EXPIRED);
   }
 
   private XTrigger getTestTrigger(String cron) {

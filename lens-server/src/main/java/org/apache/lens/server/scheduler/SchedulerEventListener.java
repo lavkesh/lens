@@ -25,16 +25,15 @@ import java.util.Map;
 
 import org.apache.lens.api.LensConf;
 import org.apache.lens.api.LensSessionHandle;
+import org.apache.lens.api.error.InvalidStateTransitionException;
 import org.apache.lens.api.query.QueryHandle;
 import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.LensServices;
 import org.apache.lens.server.api.LensConfConstants;
-import org.apache.lens.server.api.error.InvalidStateTransitionException;
 import org.apache.lens.server.api.error.LensException;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.events.SchedulerAlarmEvent;
 import org.apache.lens.server.api.query.QueryExecutionService;
-import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 import org.apache.lens.server.api.scheduler.SchedulerService;
 import org.apache.lens.server.query.QueryExecutionServiceImpl;
 import org.apache.lens.server.util.UtilityMethods;
@@ -129,7 +128,7 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
       // Next run of the instance
       long currentTime = System.currentTimeMillis();
       run = new SchedulerJobInstanceRun(instanceHandle, instance.getInstanceRunList().size() + 1, sessionHandle,
-          currentTime, 0, "N/A", null, SchedulerJobInstanceStatus.WAITING);
+          currentTime, 0, "N/A", null, SchedulerJobInstanceState.WAITING);
       instance.getInstanceRunList().add(run);
       boolean success;
       if (event.getPreviousInstance() == null) {
@@ -149,18 +148,15 @@ public class SchedulerEventListener extends AsyncEventListener<SchedulerAlarmEve
 
       QueryHandle handle = queryService.executeAsync(sessionHandle, query, queryConf, queryName);
       run.setQueryHandle(handle);
-      run.setInstanceStatus(
-          new SchedulerJobInstanceState(run.getInstanceStatus()).nextTransition(SchedulerJobInstanceState.Event.ON_RUN)
-              .getCurrentStatus());
+      run.setInstanceState(run.getInstanceState().nextTransition(SchedulerJobInstanceEvent.ON_RUN));
       run.setEndTime(System.currentTimeMillis());
       schedulerDAO.updateJobInstanceRun(run);
-    } catch (LensException e) {
+    } catch (LensException | InvalidStateTransitionException e) {
       log.error(
           "Exception occurred while launching the job instance for " + jobHandle + " for nominal time " + scheduledTime
               .getMillis(), e);
       try {
-        run.setInstanceStatus(new SchedulerJobInstanceState(run.getInstanceStatus())
-            .nextTransition(SchedulerJobInstanceState.Event.ON_FAILURE).getCurrentStatus());
+        run.setInstanceState(run.getInstanceState().nextTransition(SchedulerJobInstanceEvent.ON_FAILURE));
         run.setEndTime(System.currentTimeMillis());
         schedulerDAO.updateJobInstanceRun(run);
       } catch (InvalidStateTransitionException e1) {

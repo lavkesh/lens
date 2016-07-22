@@ -49,10 +49,10 @@ public class SchedulerJobInfo {
   private String userName;
 
   /**
-   * @param status status of this job.
+   * @param jobstate of this job.
    * @return current status of this job
    */
-  private SchedulerJobStatus jobStatus;
+  private SchedulerJobState jobState;
 
   /**
    * @param createdOn time to be set when it was created.

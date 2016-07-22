@@ -72,9 +72,9 @@ public class SchedulerJobInstanceRun {
   private QueryHandle queryHandle;
 
   /**
-   * @param status status to be set.
+   * @param instanceState state to be set.
    * @return status of this instance.
    */
-  private SchedulerJobInstanceStatus instanceStatus;
+  private SchedulerJobInstanceState instanceState;
 
 }

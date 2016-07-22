@@ -137,9 +137,9 @@ public class SchedulerDAO {
    * @param id : Job handle id.
    * @return SchedulerJobStatus of the job.
    */
-  public SchedulerJobStatus getJobStatus(SchedulerJobHandle id) {
+  public SchedulerJobState getJobState(SchedulerJobHandle id) {
     try {
-      return store.getJobStatus(id.getHandleIdString());
+      return store.getJobState(id.getHandleIdString());
     } catch (SQLException e) {
       log.error("Error while getting the job status for " + id.getHandleIdString(), e);
       return null;
@@ -169,7 +169,7 @@ public class SchedulerDAO {
    */
   public int updateJobStatus(SchedulerJobInfo info) {
     try {
-      return store.updateJobStatus(info.getId().getHandleIdString(), info.getJobStatus().name(), info.getModifiedOn());
+      return store.updateJobStatus(info.getId().getHandleIdString(), info.getJobState().name(), info.getModifiedOn());
     } catch (SQLException e) {
       log.error("Error while updating job status for " + info.getId().getHandleIdString(), e);
       return 0;
@@ -247,14 +247,14 @@ public class SchedulerDAO {
    * Gets all jobs which match the filter requirements.
    *
    * @param username  : User name of the job
-   * @param jobStatus : status of the job
+   * @param jobState  : state of the job
    * @param startTime : Created on should be greater than this start time.
    * @param endTime   : Created on should be less than the end time.
    * @return List of Job handles
    */
-  public List<SchedulerJobHandle> getJobs(String username, SchedulerJobStatus jobStatus, Long startTime, Long endTime) {
+  public List<SchedulerJobHandle> getJobs(String username, SchedulerJobState jobState, Long startTime, Long endTime) {
     try {
-      return store.getJobs(username, jobStatus == null ? null : jobStatus.name(), startTime, endTime);
+      return store.getJobs(username, jobState == null ? null : jobState.name(), startTime, endTime);
     } catch (SQLException e) {
       log.error("Error while getting jobs ", e);
       return null;
@@ -356,7 +356,7 @@ public class SchedulerDAO {
       String insertSQL = "INSERT INTO " + JOB_TABLE + " VALUES(?,?,?,?,?,?,?)";
       JAXBElement<XJob> xmlJob = jobFactory.createJob(jobInfo.getJob());
       return runner.update(insertSQL, jobInfo.getId().toString(), ToXMLString.toString(xmlJob), jobInfo.getUserName(),
-          jobInfo.getJobStatus().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
+          jobInfo.getJobState().name(), jobInfo.getCreatedOn(), jobInfo.getModifiedOn(), jobInfo.getJob().getName());
     }
 
     /**
@@ -379,7 +379,7 @@ public class SchedulerDAO {
           instanceRun.getSessionHandle().toString(), instanceRun.getStartTime(), instanceRun.getEndTime(),
           instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getInstanceStatus().name());
+          instanceRun.getInstanceState().name());
     }
 
     /**
@@ -402,8 +402,8 @@ public class SchedulerDAO {
         String status = (String) jobInfo[3];
         long createdOn = (Long) jobInfo[4];
         long modifiedOn = (Long) jobInfo[5];
-        SchedulerJobStatus jobStatus = SchedulerJobStatus.valueOf(status);
-        return new SchedulerJobInfo(id, xJob, userName, jobStatus, createdOn, modifiedOn);
+        SchedulerJobState jobState = SchedulerJobState.valueOf(status);
+        return new SchedulerJobInfo(id, xJob, userName, jobState, createdOn, modifiedOn);
       }
     }
 
@@ -449,13 +449,13 @@ public class SchedulerDAO {
      * @return SchedulerJobStatus
      * @throws SQLException
      */
-    public SchedulerJobStatus getJobStatus(String id) throws SQLException {
+    public SchedulerJobState getJobState(String id) throws SQLException {
       String fetchSQL = "SELECT " + COLUMN_STATUS + " FROM " + JOB_TABLE + " WHERE " + COLUMN_ID + "=?";
       List<Object[]> result = runner.query(fetchSQL, multipleRowsHandler, id);
       if (result.size() == 0) {
         return null;
       } else {
-        return SchedulerJobStatus.valueOf((String) result.get(0)[0]);
+        return SchedulerJobState.valueOf((String) result.get(0)[0]);
       }
     }
 
@@ -470,7 +470,7 @@ public class SchedulerDAO {
      * @throws SQLException
      */
     public List<SchedulerJobHandle> getJobs(String username, String status, Long starttime, Long endtime)
-      throws SQLException {
+    throws SQLException {
       String whereClause = "";
       if (username != null && !username.isEmpty()) {
         whereClause += ((whereClause.isEmpty()) ? " WHERE " : " AND ") + COLUMN_USER + " = '" + username + "'";
@@ -565,7 +565,7 @@ public class SchedulerDAO {
         if (!queryHandleString.isEmpty()) {
           queryHandle = QueryHandle.fromString((String) run[6]);
         }
-        SchedulerJobInstanceStatus instanceStatus = SchedulerJobInstanceStatus.valueOf((String) run[7]);
+        SchedulerJobInstanceState instanceStatus = SchedulerJobInstanceState.valueOf((String) run[7]);
         SchedulerJobInstanceRun instanceRun = new SchedulerJobInstanceRun(id, runId, sessionHandle, starttime, endtime,
             resultPath, queryHandle, instanceStatus);
         runList.add(instanceRun);
@@ -588,7 +588,7 @@ public class SchedulerDAO {
 
       return runner.update(updateSQL, instanceRun.getEndTime(), instanceRun.getResultPath(),
           instanceRun.getQueryHandle() == null ? "" : instanceRun.getQueryHandle().getHandleIdString(),
-          instanceRun.getInstanceStatus().name(), instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId());
+          instanceRun.getInstanceState().name(), instanceRun.getHandle().getHandleIdString(), instanceRun.getRunId());
     }
 
     /**

@@ -20,15 +20,12 @@ package org.apache.lens.server.scheduler;
 
 import java.util.List;
 
+import org.apache.lens.api.error.InvalidStateTransitionException;
 import org.apache.lens.api.query.QueryStatus;
-import org.apache.lens.api.scheduler.SchedulerJobInstanceHandle;
-import org.apache.lens.api.scheduler.SchedulerJobInstanceInfo;
-import org.apache.lens.api.scheduler.SchedulerJobInstanceRun;
-import org.apache.lens.server.api.error.InvalidStateTransitionException;
+import org.apache.lens.api.scheduler.*;
 import org.apache.lens.server.api.events.AsyncEventListener;
 import org.apache.lens.server.api.query.QueryContext;
 import org.apache.lens.server.api.query.QueryEnded;
-import org.apache.lens.server.api.scheduler.SchedulerJobInstanceState;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -66,21 +63,21 @@ public class SchedulerQueryEventListener extends AsyncEventListener<QueryEnded> 
       return;
     }
     SchedulerJobInstanceRun latestRun = runList.get(runList.size() - 1);
-    SchedulerJobInstanceState state = new SchedulerJobInstanceState(latestRun.getInstanceStatus());
+    SchedulerJobInstanceState state = latestRun.getInstanceState();
     try {
       switch (event.getCurrentValue()) {
       case CANCELED:
-        state = state.nextTransition(SchedulerJobInstanceState.Event.ON_KILL);
+        state = state.nextTransition(SchedulerJobInstanceEvent.ON_KILL);
         break;
       case SUCCESSFUL:
-        state = state.nextTransition(SchedulerJobInstanceState.Event.ON_SUCCESS);
+        state = state.nextTransition(SchedulerJobInstanceEvent.ON_SUCCESS);
         break;
       case FAILED:
-        state = state.nextTransition(SchedulerJobInstanceState.Event.ON_FAILURE);
+        state = state.nextTransition(SchedulerJobInstanceEvent.ON_FAILURE);
         break;
       }
       latestRun.setEndTime(System.currentTimeMillis());
-      latestRun.setInstanceStatus(state.getCurrentStatus());
+      latestRun.setInstanceState(state);
       latestRun.setResultPath(queryContext.getDriverResultPath());
       schedulerDAO.updateJobInstanceRun(latestRun);
     } catch (InvalidStateTransitionException e) {
