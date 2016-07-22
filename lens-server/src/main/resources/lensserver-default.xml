@@ -874,6 +874,7 @@
   <property>
     <name>lens.query.current.time.millis</name>
     <value>0</value>
-    <description>Query current time in millis. This is used to resolve 'now'</description>
+    <description>Query current time in millis. This is used to resolve 'now'. If value is set to zero, 'now' is
+     resolved to current value</description>
   </property>
 </configuration>
