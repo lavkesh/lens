@@ -102,7 +102,8 @@ public class SchedulerDAOTest {
     XJob job = getTestJob();
     long currentTime = System.currentTimeMillis();
     jobHandle = new SchedulerJobHandle(UUID.randomUUID());
-    SchedulerJobInfo info = new SchedulerJobInfo(jobHandle, job, "lens", SchedulerJobState.NEW, currentTime, currentTime);
+    SchedulerJobInfo info = new SchedulerJobInfo(jobHandle, job, "lens", SchedulerJobState.NEW, currentTime,
+        currentTime);
     // Store the job
     schedulerDAO.storeJob(info);
     // Retrive the stored job
@@ -186,8 +187,8 @@ public class SchedulerDAOTest {
         "lens", SchedulerJobState.NEW, currentTime, currentTime);
     // Store the job
     schedulerDAO.storeJob(info);
-    info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job, "lens", SchedulerJobState.NEW,
-        currentTime, currentTime);
+    info = new SchedulerJobInfo(SchedulerJobHandle.fromString(UUID.randomUUID().toString()), job, "lens",
+        SchedulerJobState.NEW, currentTime, currentTime);
     schedulerDAO.storeJob(info);
     // There should be 3 jobs till now.
     Assert.assertEquals(schedulerDAO.getJobs("lens", null, null, null).size(), 3);

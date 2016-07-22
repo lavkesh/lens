@@ -22,7 +22,8 @@ import org.apache.lens.api.error.InvalidStateTransitionException;
 /**
  * Interface to be implemented by a class that handles state transitions.
  */
-public interface StateTransitioner<STATE extends Enum<STATE> & StateTransitioner<STATE, EVENT>, EVENT extends Enum<EVENT>> {
+public interface StateTransitioner<STATE extends Enum<STATE>
+    & StateTransitioner<STATE, EVENT>, EVENT extends Enum<EVENT>> {
 
   /**
    * @param event
@@ -30,5 +31,4 @@ public interface StateTransitioner<STATE extends Enum<STATE> & StateTransitioner
    * @throws InvalidStateTransitionException
    */
   STATE nextTransition(EVENT event) throws InvalidStateTransitionException;
-
 }
