@@ -45,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StorageCandidate implements Candidate, CandidateTable {
 
+  // TODO union : Put comments on member variables.
   @Getter
   private final CubeQueryContext cubeql;
   private final TimeRangeWriter rangeWriter;
@@ -86,7 +87,8 @@ public class StorageCandidate implements Candidate, CandidateTable {
   /**
    * Partition calculated by getPartition() method.
    */
-  private Set<FactPartition> storagePartitions = new HashSet<>();
+  @Getter
+  private Set<FactPartition> participatingPartitions = new HashSet<>();
   /**
    * Non existing partitions
    */
@@ -211,6 +213,8 @@ public class StorageCandidate implements Candidate, CandidateTable {
    *
    * 4.If the monthly partitions are found, check for lookahead partitions and call getPartitions recursively for the
    * remaining time intervals i.e, [15 sep - 1 oct) and [1 Dec - 15 Dec)
+   *
+   * TODO union : Move this into util.
    */
   private boolean getPartitions(Date fromDate, Date toDate, String partCol, Set<FactPartition> partitions,
     TreeSet<UpdatePeriod> updatePeriods, boolean addNonExistingParts, boolean failOnPartialData,
@@ -443,8 +447,8 @@ public class StorageCandidate implements Candidate, CandidateTable {
       rangeToWhere.put(timeRange, rangeWriter
         .getTimeRangeWhereClause(cubeql, cubeql.getAliasForTableName(cubeql.getCube().getName()), rangeParts));
     }
-    // Add all the partitions. storagePartitions contains all the partitions for previous time ranges also.
-    this.storagePartitions.addAll(rangeParts);
+    // Add all the partitions. participatingPartitions contains all the partitions for previous time ranges also.
+    this.participatingPartitions.addAll(rangeParts);
     return true;
   }
 
@@ -457,7 +461,7 @@ public class StorageCandidate implements Candidate, CandidateTable {
     Set<String> measureTag = new HashSet<>();
     Map<String, String> tagToMeasureOrExprMap = new HashMap<>();
 
-    processMeasuresFromExprMeasures(cubeql, measureTag, tagToMeasureOrExprMap);
+    processExpressionsForCompleteness(cubeql, measureTag, tagToMeasureOrExprMap);
 
     Set<String> measures = cubeql.getQueriedMsrs();
     if (measures == null) {
@@ -515,11 +519,6 @@ public class StorageCandidate implements Candidate, CandidateTable {
       return partitions;
     }
     return new TreeSet<>();
-  }
-
-  @Override
-  public Set<FactPartition> getParticipatingPartitions() {
-    return null;
   }
 
   @Override
