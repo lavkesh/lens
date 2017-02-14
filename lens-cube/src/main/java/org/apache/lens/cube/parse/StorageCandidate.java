@@ -507,6 +507,7 @@ public class StorageCandidate implements Candidate, CandidateTable {
         break;
       }
     }
+    this.participatingPartitions.addAll(rangeParts);
     if (!unsupportedTimeDims.isEmpty()) {
       log.info("Not considering fact table:{} as it doesn't support time dimensions: {}", this.getFact(),
         unsupportedTimeDims);
