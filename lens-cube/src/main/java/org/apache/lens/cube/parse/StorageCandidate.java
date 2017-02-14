@@ -66,11 +66,7 @@ public class StorageCandidate implements Candidate, CandidateTable {
   @Getter
   private TreeSet<UpdatePeriod> validUpdatePeriods = new TreeSet<>();
   private Configuration conf = null;
-
-  /**
-   * This map holds Tags (A tag refers to one or more measures) that have incomplete (below configured threshold) data.
-   * Value is a map of date string and %completeness.
-   */
+  // Map from measure to the map from partition to percentage completeness
   @Getter
   private Map<String, Map<String, Float>> dataCompletenessMap = new HashMap<>();
   private SimpleDateFormat partWhereClauseFormat = null;
@@ -118,8 +114,6 @@ public class StorageCandidate implements Candidate, CandidateTable {
    */
   @Getter
   private Set<String> nonExistingPartitions = new HashSet<>();
-  @Getter
-  private int numQueriedParts = 0;
 
   public StorageCandidate(CubeInterface cube, CubeFactTable fact, String storageName, CubeQueryContext cubeql)
     throws LensException {
@@ -513,9 +507,6 @@ public class StorageCandidate implements Candidate, CandidateTable {
         break;
       }
     }
-    // Add all the partitions. participatingPartitions contains all the partitions for previous time ranges also.
-    this.participatingPartitions.addAll(rangeParts);
-    numQueriedParts += rangeParts.size();
     if (!unsupportedTimeDims.isEmpty()) {
       log.info("Not considering fact table:{} as it doesn't support time dimensions: {}", this.getFact(),
         unsupportedTimeDims);
